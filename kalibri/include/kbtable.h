@@ -33,7 +33,7 @@
 
 #include "kbobject.h"
 #include "kbfunction.h"
-#include "kbglobalMethods.h"
+#include "kbglobalmethods.h"
 
 namespace kb {
 

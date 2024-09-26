@@ -33,8 +33,8 @@
 #include <string.h>
 
 #include "kbobject.h"
-#include "kbclassType.h"
-#include "kbmemberMethods.h"
+#include "kbclasstype.h"
+#include "kbmembermethods.h"
 #include "kballocator.h"
 #include "kbtypes.h"
 
