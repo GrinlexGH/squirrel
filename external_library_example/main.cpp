@@ -63,6 +63,8 @@ SQRESULT CExampleLibrary::Initialize(HSQUIRRELVM v)
 
 	kb::RootTable(v).Bind("Vec2", vec2);
 #if 0
+	// You can run your own script by doing this
+	kb::DefaultVM::Set(v); // after this line specifying vm in next objects is unnecessary
 	kb::Script script(v);
 	script.CompileString("\
 		v <- Vec2(); \

@@ -74,7 +74,6 @@ add_subdirectory(sqstdlib)
 if(NOT SQ_DISABLE_INTERPRETER)
   add_subdirectory(sq)
 endif()
-add_subdirectory(external_library_example)
 
 if(CMAKE_SIZEOF_VOID_P EQUAL 8)
   set(tgts)
