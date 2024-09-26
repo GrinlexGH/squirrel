@@ -1,19 +1,23 @@
 /* see copyright notice in squirrel.h */
 #include <new>
 #include <stdio.h>
+#include <stdint.h>
 #include <squirrel.h>
 #include <sqstdio.h>
+#include <squnicode.h>
 #include "sqstdstream.h"
+
+#ifdef SQUNICODE
+#define scfopen(x, y) _wfopen(widen(x).c_str(), widen(y).c_str())
+#else
+#define scfopen fopen
+#endif
 
 #define SQSTD_FILE_TYPE_TAG ((SQUnsignedInteger)(SQSTD_STREAM_TYPE_TAG | 0x00000001))
 //basic API
 SQFILE sqstd_fopen(const SQChar *filename ,const SQChar *mode)
 {
-#ifndef SQUNICODE
-    return (SQFILE)fopen(filename,mode);
-#else
-    return (SQFILE)_wfopen(filename,mode);
-#endif
+    return (SQFILE)scfopen(filename, mode);
 }
 
 SQInteger sqstd_fread(void* buffer, SQInteger size, SQInteger count, SQFILE file)
@@ -241,7 +245,7 @@ SQInteger _read_two_bytes(IOBuffer *iobuffer)
 {
     if(iobuffer->ptr < iobuffer->size) {
         if(iobuffer->size < 2) return 0;
-        SQInteger ret = *((const wchar_t*)&iobuffer->buffer[iobuffer->ptr]);
+        SQInteger ret = *((const uint16_t*)&iobuffer->buffer[iobuffer->ptr]);
         iobuffer->ptr += 2;
         return ret;
     }
@@ -249,7 +253,7 @@ SQInteger _read_two_bytes(IOBuffer *iobuffer)
         if( (iobuffer->size = sqstd_fread(iobuffer->buffer,1,IO_BUFFER_SIZE,iobuffer->file )) > 0 )
         {
             if(iobuffer->size < 2) return 0;
-            SQInteger ret = *((const wchar_t*)&iobuffer->buffer[0]);
+            SQInteger ret = *((const uint16_t*)&iobuffer->buffer[0]);
             iobuffer->ptr = 2;
             return ret;
         }
@@ -265,7 +269,6 @@ static SQInteger _io_file_lexfeed_PLAIN(SQUserPointer iobuf)
 
 }
 
-#ifdef SQUNICODE
 static SQInteger _io_file_lexfeed_UTF8(SQUserPointer iobuf)
 {
     IOBuffer *iobuffer = (IOBuffer *)iobuf;
@@ -303,25 +306,49 @@ static SQInteger _io_file_lexfeed_UTF8(SQUserPointer iobuf)
     }
     return c;
 }
-#endif
 
 static SQInteger _io_file_lexfeed_UCS2_LE(SQUserPointer iobuf)
 {
-    SQInteger ret;
+    SQInteger low;
     IOBuffer *iobuffer = (IOBuffer *)iobuf;
-    if( (ret = _read_two_bytes(iobuffer)) > 0 )
-        return ret;
+    low = _read_two_bytes(iobuffer);
+    if (low == 0) return 0;
+    if (low < 0xD800 || low > 0xDFFF) {
+        return low;
+    }
+
+    if (low >= 0xD800 && low <= 0xDBFF) {
+        SQInteger high = _read_two_bytes(iobuffer);
+        if (high >= 0xDC00 && high <= 0xDFFF) {
+            return ((low - 0xD800) << 10) + (high - 0xDC00) + 0x10000;
+        }
+    }
+
     return 0;
 }
 
 static SQInteger _io_file_lexfeed_UCS2_BE(SQUserPointer iobuf)
 {
-    SQInteger c;
     IOBuffer *iobuffer = (IOBuffer *)iobuf;
-    if( (c = _read_two_bytes(iobuffer)) > 0 ) {
-        c = ((c>>8)&0x00FF)| ((c<<8)&0xFF00);
-        return c;
+    SQInteger raw = _read_two_bytes(iobuffer);
+    if (raw == 0) return 0;
+
+    // BE to LE
+    SQInteger value = ((raw >> 8) & 0xFF) | ((raw & 0xFF) << 8);
+
+    if (value < 0xD800 || value > 0xDFFF) {
+        return value;
     }
+
+    if (value >= 0xD800 && value <= 0xDBFF) {
+        raw = _read_two_bytes(iobuffer);
+        // BE to LE
+        raw = ((raw >> 8) & 0xFF) | ((raw & 0xFF) << 8);
+        if (raw >= 0xDC00 && raw <= 0xDFFF) {
+            return ((value - 0xD800) << 10) + (raw - 0xDC00) + 0x10000;
+        }
+    }
+
     return 0;
 }
 
@@ -344,7 +371,7 @@ SQRESULT sqstd_loadfile(HSQUIRRELVM v,const SQChar *filename,SQBool printerror)
     SQInteger ret;
     unsigned short us;
     unsigned char uc;
-    SQLEXREADFUNC func = _io_file_lexfeed_PLAIN;
+    SQLEXREADFUNC func = _io_file_lexfeed_UTF8; // assume file encoding in UTF-8
     if(file){
         ret = sqstd_fread(&us,1,2,file);
         if(ret != 2) {
@@ -374,11 +401,7 @@ SQRESULT sqstd_loadfile(HSQUIRRELVM v,const SQChar *filename,SQBool printerror)
                         sqstd_fclose(file);
                         return sq_throwerror(v,_SC("Unrecognized encoding"));
                     }
-#ifdef SQUNICODE
                     func = _io_file_lexfeed_UTF8;
-#else
-                    func = _io_file_lexfeed_PLAIN;
-#endif
                     break;//UTF-8 ;
                 default: sqstd_fseek(file,0,SQ_SEEK_SET); break; // ascii
             }

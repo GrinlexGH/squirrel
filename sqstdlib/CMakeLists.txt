@@ -5,7 +5,9 @@ set(SQSTDLIB_SRC sqstdaux.cpp
                  sqstdrex.cpp
                  sqstdstream.cpp
                  sqstdstring.cpp
-                 sqstdsystem.cpp)
+                 sqstdsystem.cpp
+                 sqstdimport.cpp
+                 sqos.cpp)
 
 if(NOT DISABLE_DYNAMIC)
   add_library(sqstdlib SHARED ${SQSTDLIB_SRC})
@@ -25,6 +27,7 @@ if(NOT DISABLE_DYNAMIC)
   endif()
   target_include_directories(sqstdlib PUBLIC
     "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>"
+    "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/kalibri/include>"
     "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
     )
 endif()
@@ -38,6 +41,7 @@ if(NOT DISABLE_STATIC)
   endif()
   target_include_directories(sqstdlib_static PUBLIC
     "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>"
+    "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/kalibri/include>"
     "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
     )
 endif()

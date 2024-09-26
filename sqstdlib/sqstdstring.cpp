@@ -296,7 +296,7 @@ static SQInteger _string_escape(HSQUIRRELVM v)
         sq_push(v,2);
         return 1;
     }
-#ifdef SQUNICODE
+#if 0
 #if WCHAR_SIZE == 2
     const SQChar *escpat = _SC("\\x%04x");
     const SQInteger maxescsize = 6;

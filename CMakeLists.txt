@@ -18,25 +18,47 @@ include(GNUInstallDirs)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/${CMAKE_INSTALL_BINDIR}")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR}")
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR}")
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
 
-if(CMAKE_COMPILER_IS_GNUCXX)
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
   add_compile_options(
-    "$<$<COMPILE_LANGUAGE:CXX>:-fno-rtti;-fno-exceptions>"
     -fno-strict-aliasing
-    -Wall
-    -Wextra
-    -pedantic
-    -Wcast-qual
     "$<$<CONFIG:Release>:-O3>"
     "$<$<CONFIG:RelWithDebInfo>:-O3;-g>"
     "$<$<CONFIG:MinSizeRel>:-Os>"
-    "$<$<CONFIG:Debug>:-pg;-pie;-gstabs;-g3;-Og>"
+    "$<$<CONFIG:Debug>:-g;-g3;-Og>"
     )
 elseif(MSVC)
   set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
-  add_definitions(-D_CRT_SECURE_NO_WARNINGS)
 endif()
+add_definitions(-D_CRT_SECURE_NO_WARNINGS)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+if(CYGWIN)
+  add_compile_definitions(PLATFORM_CYGWIN)
+endif()
+
+if(UNIX)
+  add_compile_definitions(PLATFORM_POSIX)
+endif()
+
+if(WIN32)
+  add_compile_definitions(PLATFORM_WINDOWS UNICODE _UNICODE)
+endif()
+
+if(MSVC)
+  add_compile_options("/utf-8" "/Zc:__cplusplus")
+
+  if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+    add_compile_definitions(COMPILER_MSVC64)
+  elseif(CMAKE_SIZEOF_VOID_P EQUAL 4)
+    add_compile_definitions(COMPILER_MSVC32)
+  endif()
+else()
+  add_compile_definitions(COMPILER_GCC)
+endif()
+
+set(CMAKE_PREFIX_PATH ${PROJECT_SOURCE_DIR}/libs)
 
 # Need to be defined here to be visible to squirrel.pc.in
 if(LONG_OUTPUT_NAMES)
@@ -52,6 +74,7 @@ add_subdirectory(sqstdlib)
 if(NOT SQ_DISABLE_INTERPRETER)
   add_subdirectory(sq)
 endif()
+add_subdirectory(external_library_example)
 
 if(CMAKE_SIZEOF_VOID_P EQUAL 8)
   set(tgts)
@@ -77,6 +100,27 @@ if(NOT DISABLE_DYNAMIC)
 endif()
 
 if(NOT SQ_DISABLE_INSTALLER AND NOT SQ_DISABLE_HEADER_INSTALLER)
+  install(FILES
+    kalibri/include/kalibri.h
+    kalibri/include/kballocator.h
+    kalibri/include/kbarray.h
+    kalibri/include/kbbytecode.h
+    kalibri/include/kbclass.h
+    kalibri/include/kbclasstype.h
+    kalibri/include/kbconst.h
+    kalibri/include/kbfunction.h
+    kalibri/include/kbglobalmethods.h
+    kalibri/include/kbmembermethods.h
+    kalibri/include/kbobject.h
+    kalibri/include/kboverloadmethods.h
+    kalibri/include/kbscript.h
+    kalibri/include/kbtable.h
+    kalibri/include/kbtypes.h
+    kalibri/include/kbutil.h
+    kalibri/include/kbvm.h
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    COMPONENT Development
+  )
   install(FILES
     include/sqconfig.h
     include/squirrel.h

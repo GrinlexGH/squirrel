@@ -51,57 +51,6 @@ typedef void* SQUserPointer;
 typedef SQUnsignedInteger SQBool;
 typedef SQInteger SQRESULT;
 
-#ifdef SQUNICODE
-#include <wchar.h>
-#include <wctype.h>
-
-
-typedef wchar_t SQChar;
-
-
-#define scstrcmp    wcscmp
-#ifdef _WIN32
-#define scsprintf   _snwprintf
-#else
-#define scsprintf   swprintf
-#endif
-#define scstrlen    wcslen
-#define scstrtod    wcstod
-#ifdef _SQ64
-#define scstrtol    wcstoll
-#else
-#define scstrtol    wcstol
-#endif
-#define scstrtoul   wcstoul
-#define scvsprintf  vswprintf
-#define scstrstr    wcsstr
-#define scprintf    wprintf
-
-#ifdef _WIN32
-#define WCHAR_SIZE 2
-#define WCHAR_SHIFT_MUL 1
-#define MAX_CHAR 0xFFFF
-#else
-#define WCHAR_SIZE 4
-#define WCHAR_SHIFT_MUL 2
-#define MAX_CHAR 0xFFFFFFFF
-#endif
-
-#define _SC(a) L##a
-
-
-#define scisspace   iswspace
-#define scisdigit   iswdigit
-#define scisprint   iswprint
-#define scisxdigit  iswxdigit
-#define scisalpha   iswalpha
-#define sciscntrl   iswcntrl
-#define scisalnum   iswalnum
-
-
-#define sq_rsl(l) ((l)<<WCHAR_SHIFT_MUL)
-
-#else
 typedef char SQChar;
 #define _SC(a) a
 #define scstrcmp    strcmp
@@ -124,19 +73,17 @@ typedef char SQChar;
 #define scstrtoul   strtoul
 #define scvsprintf  vsnprintf
 #define scstrstr    strstr
-#define scisspace   isspace
-#define scisdigit   isdigit
-#define scisprint   isprint
-#define scisxdigit  isxdigit
-#define sciscntrl   iscntrl
-#define scisalpha   isalpha
-#define scisalnum   isalnum
+#define scisspace(x)   isspace((int)(x))
+#define scisdigit(x)   isdigit((int)(x))
+#define scisprint(x)   isprint((int)(x))
+#define scisxdigit(x)  isxdigit((int)(x))
+#define sciscntrl(x)   iscntrl((int)(x))
+#define scisalpha(x)   isalpha((int)(x))
+#define scisalnum(x)   isalnum((int)(x))
 #define scprintf    printf
-#define MAX_CHAR 0xFF
+#define MAX_CHAR 0x10FFFF
 
 #define sq_rsl(l) (l)
-
-#endif
 
 #ifdef _SQ64
 #define _PRINT_INT_PREC _SC("ll")

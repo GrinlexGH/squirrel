@@ -97,11 +97,13 @@ SQRESULT sqstd_register_mathlib(HSQUIRRELVM v)
         sq_newslot(v,-3,SQFalse);
         i++;
     }
+    sq_pushconsttable(v);
     sq_pushstring(v,_SC("RAND_MAX"),-1);
     sq_pushinteger(v,RAND_MAX);
     sq_newslot(v,-3,SQFalse);
     sq_pushstring(v,_SC("PI"),-1);
     sq_pushfloat(v,(SQFloat)M_PI);
     sq_newslot(v,-3,SQFalse);
+    sq_pop(v, 1);
     return SQ_OK;
 }

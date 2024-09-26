@@ -1,4 +1,4 @@
-/*
+﻿/*
     see copyright notice in squirrel.h
 */
 #include "sqpcheader.h"

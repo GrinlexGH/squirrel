@@ -14,7 +14,7 @@
 #define IS_EOB() (CUR_CHAR <= SQUIRREL_EOB)
 #define NEXT() {Next();_currentcolumn++;}
 #define INIT_TEMP_STRING() { _longstr.resize(0);}
-#define APPEND_CHAR(c) { _longstr.push_back(c);}
+#define APPEND_CHAR(c) { _longstr.push_back((SQChar)c);}
 #define TERMINATE_BUFFER() {_longstr.push_back(_SC('\0'));}
 #define ADD_KEYWORD(key,id) _keywords->NewSlot( SQString::Create(ss, _SC(#key)) ,SQInteger(id))
 
@@ -289,8 +289,7 @@ SQInteger SQLexer::GetIDType(const SQChar *s,SQInteger len)
     return TK_IDENTIFIER;
 }
 
-#ifdef SQUNICODE
-#if WCHAR_SIZE == 2
+#if 0
 SQInteger SQLexer::AddUTF16(SQUnsignedInteger ch)
 {
     if (ch >= 0x10000)
@@ -306,7 +305,7 @@ SQInteger SQLexer::AddUTF16(SQUnsignedInteger ch)
     }
 }
 #endif
-#else
+
 SQInteger SQLexer::AddUTF8(SQUnsignedInteger ch)
 {
     if (ch < 0x80) {
@@ -333,15 +332,14 @@ SQInteger SQLexer::AddUTF8(SQUnsignedInteger ch)
     }
     return 0;
 }
-#endif
 
 SQInteger SQLexer::ProcessStringHexEscape(SQChar *dest, SQInteger maxdigits)
 {
     NEXT();
-    if (!isxdigit(CUR_CHAR)) Error(_SC("hexadecimal number expected"));
+    if (!scisxdigit(CUR_CHAR)) Error(_SC("hexadecimal number expected"));
     SQInteger n = 0;
-    while (isxdigit(CUR_CHAR) && n < maxdigits) {
-        dest[n] = CUR_CHAR;
+    while (scisxdigit(CUR_CHAR) && n < maxdigits) {
+        dest[n] = (SQChar)CUR_CHAR;
         n++;
         NEXT();
     }
@@ -387,15 +385,7 @@ SQInteger SQLexer::ReadString(SQInteger ndelim,bool verbatim)
                         SQChar temp[8 + 1];
                         ProcessStringHexEscape(temp, maxdigits);
                         SQChar *stemp;
-#ifdef SQUNICODE
-#if WCHAR_SIZE == 2
-                        AddUTF16(scstrtoul(temp, &stemp, 16));
-#else
-                        APPEND_CHAR((SQChar)scstrtoul(temp, &stemp, 16));
-#endif
-#else
                         AddUTF8(scstrtoul(temp, &stemp, 16));
-#endif
                     }
                     break;
                     case _SC('t'): APPEND_CHAR(_SC('\t')); NEXT(); break;
@@ -416,7 +406,7 @@ SQInteger SQLexer::ReadString(SQInteger ndelim,bool verbatim)
                 }
                 break;
             default:
-                APPEND_CHAR(CUR_CHAR);
+                AddUTF8(CUR_CHAR);
                 NEXT();
             }
         }
@@ -488,7 +478,7 @@ SQInteger SQLexer::ReadNumber()
     SQChar *sTemp;
     INIT_TEMP_STRING();
     NEXT();
-    if(firstchar == _SC('0') && (toupper(CUR_CHAR) == _SC('X') || scisodigit(CUR_CHAR)) ) {
+    if(firstchar == _SC('0') && (toupper((int)CUR_CHAR) == _SC('X') || scisodigit(CUR_CHAR)) ) {
         if(scisodigit(CUR_CHAR)) {
             type = TOCTAL;
             while(scisodigit(CUR_CHAR)) {
@@ -500,7 +490,7 @@ SQInteger SQLexer::ReadNumber()
         else {
             NEXT();
             type = THEX;
-            while(isxdigit(CUR_CHAR)) {
+            while(scisxdigit(CUR_CHAR)) {
                 APPEND_CHAR(CUR_CHAR);
                 NEXT();
             }

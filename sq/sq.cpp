@@ -1,5 +1,4 @@
 /*  see copyright notice in squirrel.h */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -16,17 +15,26 @@
 #include <sqstdmath.h>
 #include <sqstdstring.h>
 #include <sqstdaux.h>
+#include <sqstdimport.h>
+#include <squnicode.h>
 
-#ifdef SQUNICODE
-#define scfprintf fwprintf
-#define scvprintf vfwprintf
-#else
+#include <kalibri.h>
+
 #define scfprintf fprintf
 #define scvprintf vfprintf
-#endif
-
 
 void PrintVersionInfos();
+
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+void initconsole() {
+    ::SetConsoleCP(CP_UTF8);
+    ::SetConsoleOutputCP(CP_UTF8);
+}
+#else
+void initconsole() { }
+#endif
 
 #if defined(_MSC_VER) && defined(_DEBUG)
 int MemAllocHook( int allocType, void *userData, size_t size, int blockType,
@@ -43,7 +51,7 @@ SQInteger quit(HSQUIRRELVM v)
     int *done;
     sq_getuserpointer(v,-1,(SQUserPointer*)&done);
     *done=1;
-    return 0;
+    return SQ_OK;
 }
 
 void printfunc(HSQUIRRELVM SQ_UNUSED_ARG(v),const SQChar *s,...)
@@ -87,9 +95,6 @@ int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
 {
     int i;
     int compiles_only = 0;
-#ifdef SQUNICODE
-    static SQChar temp[500];
-#endif
     char * output = NULL;
     *retval = 0;
     if(argc>1)
@@ -138,12 +143,7 @@ int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
 
         if(arg<argc) {
             const SQChar *filename=NULL;
-#ifdef SQUNICODE
-            mbstowcs(temp,argv[arg],strlen(argv[arg]));
-            filename=temp;
-#else
             filename=argv[arg];
-#endif
 
             arg++;
 
@@ -156,36 +156,20 @@ int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
                 if(SQ_SUCCEEDED(sqstd_loadfile(v,filename,SQTrue))){
                     const SQChar *outfile = _SC("out.cnut");
                     if(output) {
-#ifdef SQUNICODE
-                        int len = (int)(strlen(output)+1);
-                        mbstowcs(sq_getscratchpad(v,len*sizeof(SQChar)),output,len);
-                        outfile = sq_getscratchpad(v,-1);
-#else
                         outfile = output;
-#endif
                     }
                     if(SQ_SUCCEEDED(sqstd_writeclosuretofile(v,outfile)))
                         return _DONE;
                 }
             }
             else {
-                //if(SQ_SUCCEEDED(sqstd_dofile(v,filename,SQFalse,SQTrue))) {
-                    //return _DONE;
-                //}
                 if(SQ_SUCCEEDED(sqstd_loadfile(v,filename,SQTrue))) {
                     int callargs = 1;
                     sq_pushroottable(v);
                     for(i=arg;i<argc;i++)
                     {
                         const SQChar *a;
-#ifdef SQUNICODE
-                        int alen=(int)strlen(argv[i]);
-                        a=sq_getscratchpad(v,(int)(alen*sizeof(SQChar)));
-                        mbstowcs(sq_getscratchpad(v,-1),argv[i],alen);
-                        sq_getscratchpad(v,-1)[alen] = _SC('\0');
-#else
                         a=argv[i];
-#endif
                         sq_pushstring(v,a,-1);
                         callargs++;
                         //sq_arrayappend(v,-2);
@@ -276,7 +260,7 @@ void Interactive(HSQUIRRELVM v)
         buffer[i] = _SC('\0');
 
         if(buffer[0]==_SC('=')){
-            scsprintf(sq_getscratchpad(v,MAXINPUT),(size_t)MAXINPUT,_SC("return (%s)"),&buffer[1]);
+            scsprintf(sq_getscratchpad(v,MAXINPUT+9),MAXINPUT+9,_SC("return (%s)"),&buffer[1]);
             memcpy(buffer,sq_getscratchpad(v,-1),(scstrlen(sq_getscratchpad(v,-1))+1)*sizeof(SQChar));
             retval=1;
         }
@@ -303,8 +287,11 @@ void Interactive(HSQUIRRELVM v)
     }
 }
 
+
 int main(int argc, char* argv[])
 {
+    initconsole();
+
     HSQUIRRELVM v;
     SQInteger retval = 0;
 #if defined(_MSC_VER) && defined(_DEBUG)
@@ -321,6 +308,7 @@ int main(int argc, char* argv[])
     sqstd_register_systemlib(v);
     sqstd_register_mathlib(v);
     sqstd_register_stringlib(v);
+    sqstd_register_import(v);
 
     //aux library
     //sets error handlers
@@ -337,13 +325,12 @@ int main(int argc, char* argv[])
     default:
         break;
     }
-
     sq_close(v);
 
 #if defined(_MSC_VER) && defined(_DEBUG)
     _getch();
     _CrtMemDumpAllObjectsSince( NULL );
 #endif
-    return retval;
+    return (int)retval;
 }
 

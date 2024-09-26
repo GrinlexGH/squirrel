@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <sqstdsystem.h>
+#include <squnicode.h>
 
 #if defined(__APPLE__) && !defined(IOS)
 #include <TargetConditionals.h>
@@ -14,11 +15,11 @@
 
 #ifdef SQUNICODE
 #include <wchar.h>
-#define scgetenv _wgetenv
-#define scsystem _wsystem
-#define scasctime _wasctime
-#define scremove _wremove
-#define screname _wrename
+#define scgetenv(x) narrow(_wgetenv(widen(x).c_str())).c_str()
+#define scsystem(x) _wsystem(widen(x).c_str())
+#define scasctime(x) narrow(_wasctime(x)).c_str()
+#define scremove(x) _wremove(widen(x).c_str())
+#define screname(x, y) _wrename(widen(x).c_str(), widen(y).c_str())
 #else
 #define scgetenv getenv
 #define scsystem system
