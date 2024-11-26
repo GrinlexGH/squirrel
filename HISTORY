@@ -1,3 +1,8 @@
+***version 3.3 stable***
+-implemented faster string concatenation that doesn't copy the strings before hashing
+-fixed security vulnerability in scratchpad(thx Radnai L.)
+
+***2022-02-10      ***
 ***version 3.2 stable***
 -added new inline bind env syntax for closures
 -added sq_tailcall
