@@ -1,4 +1,5 @@
 /*  see copyright notice in squirrel.h */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -15,10 +16,8 @@
 #include <sqstdmath.h>
 #include <sqstdstring.h>
 #include <sqstdaux.h>
-#include <sqstdimport.h>
-#include <squnicode.h>
 
-#include <kalibri.h>
+#include <kalibri.hpp>
 
 #define scfprintf fprintf
 #define scvprintf vfprintf
@@ -26,14 +25,19 @@
 void PrintVersionInfos();
 
 #ifdef _WIN32
+
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+
 void initconsole() {
     ::SetConsoleCP(CP_UTF8);
     ::SetConsoleOutputCP(CP_UTF8);
 }
+
 #else
+
 void initconsole() { }
+
 #endif
 
 #if defined(_MSC_VER) && defined(_DEBUG)
@@ -51,7 +55,7 @@ SQInteger quit(HSQUIRRELVM v)
     int *done;
     sq_getuserpointer(v,-1,(SQUserPointer*)&done);
     *done=1;
-    return SQ_OK;
+    return 0;
 }
 
 void printfunc(HSQUIRRELVM SQ_UNUSED_ARG(v),const SQChar *s,...)
@@ -308,7 +312,7 @@ int main(int argc, char* argv[])
     sqstd_register_systemlib(v);
     sqstd_register_mathlib(v);
     sqstd_register_stringlib(v);
-    sqstd_register_import(v);
+    kb_register_import(v);
 
     //aux library
     //sets error handlers

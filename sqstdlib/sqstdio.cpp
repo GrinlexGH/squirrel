@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <squirrel.h>
 #include <sqstdio.h>
-#include <squnicode.h>
+#include "squnicode.h"
 #include "sqstdstream.h"
 
 #ifdef SQUNICODE
@@ -403,7 +403,7 @@ SQRESULT sqstd_loadfile(HSQUIRRELVM v,const SQChar *filename,SQBool printerror)
                     }
                     func = _io_file_lexfeed_UTF8;
                     break;//UTF-8 ;
-                default: sqstd_fseek(file,0,SQ_SEEK_SET); break; // ascii
+                default: sqstd_fseek(file,0,SQ_SEEK_SET); break; // ascii or utf8
             }
             IOBuffer buffer;
             buffer.ptr = 0;

@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <sqstdsystem.h>
-#include <squnicode.h>
+#include "squnicode.h"
 
 #if defined(__APPLE__) && !defined(IOS)
 #include <TargetConditionals.h>

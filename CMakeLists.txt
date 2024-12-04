@@ -8,6 +8,7 @@ project(squirrel
 
 option(DISABLE_STATIC "Avoid building/installing static libraries.")
 option(LONG_OUTPUT_NAMES "Use longer names for binaries and libraries: squirrel3 (not sq).")
+option(BUILD_KALIBRI_TESTS "Build tests or not." ON)
 
 if (NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE "Release")
@@ -20,45 +21,24 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR}")
 set(CMAKE_CXX_STANDARD 17)
 
+add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
+set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
   add_compile_options(
     -fno-strict-aliasing
-    "$<$<CONFIG:Release>:-O3>"
-    "$<$<CONFIG:RelWithDebInfo>:-O3;-g>"
-    "$<$<CONFIG:MinSizeRel>:-Os>"
-    "$<$<CONFIG:Debug>:-g;-g3;-Og>"
-    )
+  )
 elseif(MSVC)
-  set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
-endif()
-add_definitions(-D_CRT_SECURE_NO_WARNINGS)
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
-if(CYGWIN)
-  add_compile_definitions(PLATFORM_CYGWIN)
-endif()
-
-if(UNIX)
-  add_compile_definitions(PLATFORM_POSIX)
+  add_compile_options(
+    /utf-8
+    /Zc:__cplusplus
+  )
 endif()
 
 if(WIN32)
-  add_compile_definitions(PLATFORM_WINDOWS UNICODE _UNICODE)
+  add_compile_definitions(UNICODE _UNICODE)
 endif()
-
-if(MSVC)
-  add_compile_options("/utf-8" "/Zc:__cplusplus")
-
-  if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-    add_compile_definitions(COMPILER_MSVC64)
-  elseif(CMAKE_SIZEOF_VOID_P EQUAL 4)
-    add_compile_definitions(COMPILER_MSVC32)
-  endif()
-else()
-  add_compile_definitions(COMPILER_GCC)
-endif()
-
-set(CMAKE_PREFIX_PATH ${PROJECT_SOURCE_DIR}/libs)
 
 # Need to be defined here to be visible to squirrel.pc.in
 if(LONG_OUTPUT_NAMES)
@@ -73,6 +53,13 @@ add_subdirectory(squirrel)
 add_subdirectory(sqstdlib)
 if(NOT SQ_DISABLE_INTERPRETER)
   add_subdirectory(sq)
+endif()
+add_subdirectory(kalibri)
+if(BUILD_KALIBRI_TESTS)
+  set(BUILD_GMOCK OFF CACHE BOOL "Builds the googlemock subproject" FORCE)
+  set(gtest_force_shared_crt ON CACHE BOOL "Use shared (DLL) run-time lib even when Google Test is built as static lib." FORCE)
+  add_subdirectory(googletest)
+  add_subdirectory(kalibritests)
 endif()
 
 if(CMAKE_SIZEOF_VOID_P EQUAL 8)
@@ -100,24 +87,31 @@ endif()
 
 if(NOT SQ_DISABLE_INSTALLER AND NOT SQ_DISABLE_HEADER_INSTALLER)
   install(FILES
-    kalibri/include/kalibri.h
-    kalibri/include/kballocator.h
-    kalibri/include/kbarray.h
-    kalibri/include/kbbytecode.h
-    kalibri/include/kbclass.h
-    kalibri/include/kbclasstype.h
-    kalibri/include/kbconst.h
-    kalibri/include/kbfunction.h
-    kalibri/include/kbglobalmethods.h
-    kalibri/include/kbmembermethods.h
-    kalibri/include/kbobject.h
-    kalibri/include/kboverloadmethods.h
-    kalibri/include/kbscript.h
-    kalibri/include/kbtable.h
-    kalibri/include/kbtypes.h
-    kalibri/include/kbutil.h
-    kalibri/include/kbvm.h
+    include/kalibri.hpp
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    COMPONENT Development
+  )
+
+  install(FILES
+    include/kalibri/kballocator.hpp
+    include/kalibri/kbarray.hpp
+    include/kalibri/kbbytecode.hpp
+    include/kalibri/kbclass.hpp
+    include/kalibri/kbclasstype.hpp
+    include/kalibri/kbconst.hpp
+    include/kalibri/kbfunction.hpp
+    include/kalibri/kbglobalmethods.hpp
+    include/kalibri/kbmembermethods.hpp
+    include/kalibri/kbmodule.hpp
+    include/kalibri/kbobject.hpp
+    include/kalibri/kboverloadmethods.hpp
+    include/kalibri/kbscript.hpp
+    include/kalibri/kbtable.hpp
+    include/kalibri/kbtypes.hpp
+    include/kalibri/kbunicode.hpp
+    include/kalibri/kbutil.hpp
+    include/kalibri/kbvm.hpp
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/kalibri
     COMPONENT Development
   )
   install(FILES
