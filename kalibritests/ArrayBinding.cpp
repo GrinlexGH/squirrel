@@ -29,46 +29,47 @@
 using namespace kb;
 
 TEST_F(KalibriTest, ArrayGet) {
-    static const SQChar *sq_code = _SC("\
+    static const SQChar *sq_code = "\
         local i; \
         for (i = 0; i < 12; i++) \
             a.append(i); \
         \
-    ");
-    int i;
+    ";
     DefaultVM::Set(vm);
 
     Array array(vm);
-    RootTable(vm).Bind(_SC("a"), array);
+    RootTable(vm).Bind("a", array);
 
     Script script;
     script.CompileString(sq_code);
     if (kb::Error::Occurred(vm)) {
-        FAIL() << _SC("Compile Failed: ") << kb::Error::Message(vm);
+        FAIL() << "Compile Failed: " << kb::Error::Message(vm);
     }
 
     script.Run();
     if (kb::Error::Occurred(vm)) {
-        FAIL() << _SC("Run Failed: ") << kb::Error::Message(vm);
+        FAIL() << "Run Failed: " << kb::Error::Message(vm);
     }
 
     const int length = static_cast<const int>(array.Length());
     EXPECT_EQ(length, 12);
 
-    for (i = 0; i < length; i++)
+    for (int i = 0; i < length; i++)
     {
         SharedPtr<int> t = array.GetValue<int>(i);
         EXPECT_EQ(t != NULL, 1);
         EXPECT_EQ(*t, i);
+
         SharedPtr<float> f;
         f = array.GetValue<float>(i);
         EXPECT_EQ(f != NULL, 1);
         EXPECT_EQ((float)i, *f);
     }
+
     std::vector<int> t(length);
     array.GetArray(t.data(), static_cast<int>(t.size()));
     EXPECT_FALSE(kb::Error::Occurred(vm));
-    for (i = 0; i < length; i++)
+    for (int i = 0; i < length; i++)
     {
         EXPECT_EQ(t[i], i);
     }
@@ -76,7 +77,7 @@ TEST_F(KalibriTest, ArrayGet) {
     std::vector<double> d(length);
     array.GetArray(d.data(), static_cast<int>(d.size()));
     EXPECT_FALSE(kb::Error::Occurred(vm));
-    for (i = 0; i < length; i++)
+    for (int i = 0; i < length; i++)
     {
         EXPECT_EQ(d[i], (double)i);
     }

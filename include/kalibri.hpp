@@ -12,4 +12,10 @@
 
 SQRESULT kb_register_import(HSQUIRRELVM vm);
 
-extern "C" __declspec(dllexport) SQRESULT sqmodule_load(HSQUIRRELVM vm, HSQAPI api);
+extern "C"
+#if _WIN32
+__declspec(dllexport)
+#else
+__attribute__((visibility("default")))
+#endif
+SQRESULT sqmodule_load(HSQUIRRELVM vm, HSQAPI api);

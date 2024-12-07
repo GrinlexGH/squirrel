@@ -101,11 +101,9 @@ TEST_F(KalibriTest, SimpleTableBinding)
     {
         EXPECT_TRUE(get_object_string(vm, it.getKey(), str1));
         EXPECT_TRUE(get_object_string(vm, it.getValue(), str2));
-#ifndef SQUNICODE
         std::cout << "Key: "
                   << str1 << " Value: "
                   << str2 << std::endl;
-#endif
     }
     SharedPtr<string> value = test.GetValue<string>(12);
     EXPECT_EQ(value != NULL, 1);
@@ -235,11 +233,9 @@ TEST_F(KalibriTest, TableCleanup)    // test case for Sourceforge kalibri Bug 43
         key = ss1.str();
         value = ss2.str();
         SharedPtr<string> value2 = table.GetValue<string>(key.c_str());
-#ifndef SQUNICODE
         std::cout << "Key: "
                   << key << " Value: "
                   << value << " value2: " << *value2 << std::endl;
-#endif
         EXPECT_EQ(value2 != NULL, 1);
         EXPECT_EQ(value, *value2);
     }

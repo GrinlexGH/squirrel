@@ -1,6 +1,5 @@
 #include <kalibri.hpp>
 
-#include <string>
 #include <filesystem>
 
 using SQModuleLoad_t = SQRESULT(*)(HSQUIRRELVM, HSQAPI);
@@ -9,7 +8,8 @@ static HSQAPI sqapi = NULL;
 
 // Create and populate the HSQAPI structure with function pointers
 // If new functions are added to the Squirrel API, they should be added here too
-static HSQAPI kb_newapi() {
+static HSQAPI kb_newapi()
+{
     HSQAPI sq = (HSQAPI)sq_malloc(sizeof(sq_api));
 
     /*vm*/
@@ -185,7 +185,10 @@ static HSQAPI kb_newapi() {
 #ifdef _WIN32
 #include <windows.h>
 
-static std::string narrow(const std::wstring_view wstr) {
+#include <string>
+
+static std::string narrow(const std::wstring_view wstr)
+{
     if (wstr.empty()) {
         return {};
     }
@@ -203,7 +206,8 @@ static std::string narrow(const std::wstring_view wstr) {
     return out;
 }
 
-static std::wstring widen(const std::string_view str) {
+static std::wstring widen(const std::string_view str)
+{
     if (str.empty()) {
         return {};
     }
@@ -215,7 +219,8 @@ static std::wstring widen(const std::string_view str) {
     return out;
 }
 
-static void* LoadLib(const std::string& name) {
+static void* LoadLib(const std::string& name)
+{
     void* ret = LoadLibraryExW(
         widen(name + ".dll").c_str(),
         nullptr,
@@ -235,38 +240,37 @@ static void* LoadLib(const std::string& name) {
     );
 }
 
-static void* GetFunc(void* handle, const char* funcName) {
+static void* GetFunc(void* handle, const char* funcName)
+{
     return (void*)GetProcAddress((HMODULE)handle, funcName);
 }
 
 #else
 
-#include <fstream>
 #include <dlfcn.h>
+#include <iostream>
 #include <unistd.h>
 #include <linux/limits.h>
 
-static void* LoadLib(const std::string& name) {
+static void* LoadLib(const std::string& name)
+{
     std::filesystem::path libPath = name;
-    std::string libName = "lib" + libPath.filename().string() + ".so";
+    std::string libName = "./lib" + libPath.filename().string() + ".so";
     libPath.remove_filename();
     libPath.append(libName);
 
-    // Firstly search in LD_LIBRARY_PATH, .so's directory or ../lib directory
-    void* ret = nullptr;
-    ret = dlopen(libPath.c_str(), RTLD_NOW);
-    if (ret) {
-        return ret;
-    }
+    return dlopen(libPath.c_str(), RTLD_NOW);
 }
 
-static void* GetFunc(void* handle, const char* funcName) {
+static void* GetFunc(void* handle, const char* funcName)
+{
     return dlsym(handle, funcName);
 }
 
 #endif
 
-static SQRESULT kb_importscript(HSQUIRRELVM v, const SQChar* moduleName) {
+static SQRESULT kb_importscript(HSQUIRRELVM v, const SQChar* moduleName)
+{
     std::string filename(moduleName);
     filename += _SC(".nut");
     if (SQ_FAILED(sqstd_loadfile(v, moduleName, true))) {
@@ -279,7 +283,8 @@ static SQRESULT kb_importscript(HSQUIRRELVM v, const SQChar* moduleName) {
     return SQ_OK;
 }
 
-static SQRESULT kb_importlib(HSQUIRRELVM v, const SQChar* moduleName) {
+static SQRESULT kb_importlib(HSQUIRRELVM v, const SQChar* moduleName)
+{
     void* externalLibrary = LoadLib(moduleName);
     if (!externalLibrary) {
         return SQ_ERROR;
