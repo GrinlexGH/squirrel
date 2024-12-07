@@ -13,6 +13,11 @@
 #include <kalibri/kbunicode.hpp>
 #include <gtest/gtest.h>
 
+#if _WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#endif
+
 namespace kb {
 
 class KalibriTest : public ::testing::Test {
@@ -20,6 +25,11 @@ protected:
     HSQUIRRELVM vm;
 
     virtual void SetUp() {
+#if _WIN32
+        SetConsoleCP(CP_UTF8);
+        SetConsoleOutputCP(CP_UTF8);
+#endif
+
         vm = sq_open(1024);
 #if SQUIRREL_VERSION_NUMBER >= 300
         sq_setprintfunc(vm, printfunc, printfunc);
@@ -37,16 +47,10 @@ protected:
         sq_close(vm);
     }
 
-#ifdef SQUNICODE
-#define scvprintf(s, vl) vwprintf(widen(s).c_str(), vl)
-#else
-#define scvprintf vprintf
-#endif
-
     static void printfunc(HSQUIRRELVM v,const SQChar *s,...) {
         va_list vl;
         va_start(vl, s);
-        scvprintf(s, vl);
+        vprintf(s, vl);
         va_end(vl);
     }
 
@@ -90,11 +94,11 @@ protected:
         ASSERT_NE(a, b);
     }
 
-    static void SQ_ASSERT_STR_EQ(string a, string b) {
+    static void SQ_ASSERT_STR_EQ(const string& a, const string& b) {
         ASSERT_STREQ(a.c_str(), b.c_str());
     }
 
-    static void SQ_ASSERT_STR_NE(string a, string b) {
+    static void SQ_ASSERT_STR_NE(const string& a, const string& b) {
         ASSERT_STRNE(a.c_str(), b.c_str());
     }
 

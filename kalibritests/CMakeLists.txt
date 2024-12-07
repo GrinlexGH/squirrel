@@ -54,11 +54,19 @@ if(NOT CMKR_VS_STARTUP_PROJECT)
 endif()
 
 target_link_libraries(kalibritests PRIVATE GTest::gtest squirrel::kalibri)
+##########
 
+# Copy script folder
 add_custom_command(
     TARGET kalibritests POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different
     ${CMAKE_CURRENT_SOURCE_DIR}/scripts
     $<TARGET_FILE_DIR:kalibritests>/scripts
-    COMMENT "Copying SDL3::SDL3 dll"
+)
+
+add_custom_command(
+    TARGET kalibritests POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different
+    ${CMAKE_CURRENT_SOURCE_DIR}/scripts
+    ${CMAKE_CURRENT_BINARY_DIR}/scripts
 )

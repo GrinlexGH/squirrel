@@ -26,16 +26,15 @@
 #include <kalibri.hpp>
 #include "Fixture.h"
 /* test demonstrating Sourceforge bug 3507590 */
-   
+
 using namespace kb;
 
 class C
 {
-    
 public:
     int suspend()
     {
-        return sq_suspendvm(DefaultVM::Get());
+        return static_cast<int>(sq_suspendvm(DefaultVM::Get()));
     }
 };
 
@@ -43,7 +42,6 @@ public:
 TEST_F(KalibriTest, SuspendVM)
 {
     DefaultVM::Set(vm);
-    int i; 
     Class<C> cclass(vm, _SC("C"));
     cclass.Func(_SC("suspend"), &C::suspend);
     

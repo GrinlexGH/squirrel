@@ -43,7 +43,7 @@ typedef SQInteger (*COPYFUNC)(HSQUIRRELVM, SQInteger, const void*);
 
 // Every Squirrel class instance made by kalibri has its type tag set to a AbstractStaticClassData object that is unique per C++ class
 struct AbstractStaticClassData {
-    AbstractStaticClassData() {}
+    AbstractStaticClassData() : baseClass(nullptr), copyFunc(nullptr) {}
     virtual ~AbstractStaticClassData() {}
     virtual SQUserPointer Cast(SQUserPointer ptr, SQUserPointer classType) = 0;
     AbstractStaticClassData* baseClass;

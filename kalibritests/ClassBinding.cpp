@@ -38,6 +38,7 @@ class C
         f = -2.0;
         s2 = _SC("not initialized");
     }
+
 public:
     int i;
     string s;
@@ -47,27 +48,22 @@ public:
     C() // default constructor in code
     {
         default_values();
-#ifndef  SQUNICODE
         std::cout << i << " " << s << " " << f << " " << s2 << std::endl;
-#endif
     }
 
     C(int i_)
     {
         default_values();
         i = i_;
-#ifndef  SQUNICODE
         std::cout << i << " " << s << " " << f << " " << s2 << std::endl;
-#endif
     }
+
     C(int i_, const SQChar *s_)
     {
         default_values();
         i = i_;
         s = string(s_);
-#ifndef  SQUNICODE
         std::cout << i << " " << s << " " << f << " " << s2 << std::endl;
-#endif
     }
 
     C(const SQChar *s2_, float f_)
@@ -75,29 +71,28 @@ public:
         default_values();
         s2 = string(s2_);
         f = f_;
-#ifndef  SQUNICODE
         std::cout << i << " " << s << " " << f << " " << s2 << std::endl;
-#endif
-
     }
+
     C(int i_, const SQChar *s_, float f_)
     {
         default_values();
         i = i_;
         s = string(s_);
         f = f_;
-#ifndef  SQUNICODE
         std::cout << i << " " << s << " " << f << " " << s2 << std::endl;
-#endif
     }
 
     C(int i_, const SQChar *s_, float f_, const SQChar *s2_): i(i_), s(s_), f(f_), s2(s2_)
     {
-#ifndef  SQUNICODE
         std::cout << i << " " << s << " " << f << " " << s2 << std::endl;
-#endif
     }
 };
+
+C make(const SQChar* s, float f)
+{
+    return C(s, f);
+}
 
 
 class C1
@@ -106,15 +101,12 @@ class C1
     C1(int x, int y, char z)
     {
     }
-
 };
 
 class C2
 {
-//private:
 public:
     C2() {}
-
 };
 
 
@@ -135,49 +127,51 @@ TEST_F(KalibriTest, Constructors)
 {
     DefaultVM::Set(vm);
 
-    Class<C> c_class(vm, _SC("C"));
+    Class<C> c_class(vm, "C");
 
     c_class
-    .Var(_SC("i"), &C::i)
-    .Var(_SC("s"), &C::s)
-    .Var(_SC("f"), &C::f)
-    .Var(_SC("s2"), &C::s2)
+    .Var("i", &C::i)
+    .Var("s", &C::s)
+    .Var("f", &C::f)
+    .Var("s2", &C::s2)
     .Ctor()
     .Ctor<int>()
-    .Ctor<int, const SQChar * >()
-    //Ctor<const SQChar *, float >("make")
-    .Ctor<int, const SQChar *, float >()
-    .Ctor<int, const SQChar *, float, const SQChar * >();
+    .Ctor<int, const SQChar*>()
+    .Ctor<const SQChar*, float>("make")
+    .Ctor<int, const SQChar*, float>()
+    .Ctor<int, const SQChar*, float, const SQChar*>();
 
-    RootTable().Bind(_SC("C"), c_class);
+    RootTable().Func("make", make);
 
-    Class<C1> c1_class(vm, _SC("C1"));
-    RootTable().Bind(_SC("C1"), c1_class);
+    RootTable().Bind("C", c_class);
 
-    Class<C2> c2_class(vm, _SC("C2"));
+    Class<C1> c1_class(vm, "C1");
+    RootTable().Bind("C1", c1_class);
+
+    Class<C2> c2_class(vm, "C2");
     c2_class.Ctor();
-    RootTable().Bind(_SC("C2"), c2_class);
+    RootTable().Bind("C2", c2_class);
 
-    Class<C3> c3_class(vm, _SC("C3"));
+    Class<C3> c3_class(vm, "C3");
     c3_class.Ctor<int, int, char>();
-    RootTable().Bind(_SC("C3"), c3_class);
+    RootTable().Bind("C3", c3_class);
 
-    Class<C3, kb::NoCopy<C3> > c3_class2(vm, _SC("C32"));
+    Class<C3, kb::NoCopy<C3>> c3_class2(vm, "C32");
     c3_class2.Ctor<int, int, char>();
-    c3_class2.Var(_SC("x"), &C3::x)
-    .Var(_SC("y"), &C3::y)
-    .Var(_SC("z"), &C3::z);
-    RootTable().Bind(_SC("C32"), c3_class2);
+    c3_class2.Var("x", &C3::x)
+    .Var("y", &C3::y)
+    .Var("z", &C3::z);
+    RootTable().Bind("C32", c3_class2);
 
 
     Script script;
 
-    script.CompileString(_SC(" \
+    script.CompileString(" \
         c0 <- C(); \
         c1 <- C(6); \
-        c2 <- C(12, \"test\");  \
+        c2 <- C(12, \"test\"); \
         c3 <- C(23, \"test2\", 33.5); \
-        c4 <- C(123, \"test3\", 133.5, \"second string\");   \
+        c4 <- C(123, \"test3\", 133.5, \"second string\"); \
             \
         gTest.EXPECT_INT_EQ(c0.i, -1); \
         gTest.EXPECT_FLOAT_EQ(c0.f, -2.0); \
@@ -193,7 +187,7 @@ TEST_F(KalibriTest, Constructors)
         gTest.EXPECT_FLOAT_EQ(c2.f, -2.0); \
         gTest.EXPECT_STR_EQ(c2.s, \"test\"); \
         gTest.EXPECT_STR_EQ(c2.s2, \"not initialized\"); \
-            print(c2 + \"\\n\");\
+        print(c2 + \"\\n\"); \
             \
         gTest.EXPECT_INT_EQ(c3.i, 23); \
         gTest.EXPECT_FLOAT_EQ(c3.f, 33.5); \
@@ -205,38 +199,36 @@ TEST_F(KalibriTest, Constructors)
         gTest.EXPECT_STR_EQ(c4.s, \"test3\"); \
         gTest.EXPECT_STR_EQ(c4.s2, \"second string\"); \
             \
-        //c22 <-make(\"abc\", 101.0) ;\
+        c22 <- make(\"abc\", 101.0); \
         gTest.EXPECT_INT_EQ(c22.i, -1); \
         gTest.EXPECT_FLOAT_EQ(c22.f, 101.0); \
         gTest.EXPECT_STR_EQ(c22.s, \"uninitialized\"); \
         gTest.EXPECT_STR_EQ(c22.s2, \"abc\"); \
             \
-        c1 <- C1();\
+        c1 <- C1(); \
         c2 <- C2(); \
-        c32 <- C32(100, 202. 'c');\
+        c32 <- C32(100, 202. 'c'); \
         gTest.EXPECT_INT_EQ(c32.x, 100); \
         gTest.EXPECT_INT_EQ(c32.y, 202); \
-        gTest.EXPECT_INT_EQ(c32.z, 'c'; \
-                \
-        "));
+        gTest.EXPECT_INT_EQ(c32.z, 'c'); \
+        ");
     if (kb::Error::Occurred(vm))
     {
-        FAIL() << _SC("Compile Failed: ") << kb::Error::Message(vm);
+        FAIL() << "Compile Failed: " << kb::Error::Message(vm);
     }
 
     script.Run();
     if (kb::Error::Occurred(vm))
     {
-        FAIL() << _SC("Run Failed: ") << kb::Error::Message(vm);
+        FAIL() << "Run Failed: " << kb::Error::Message(vm);
     }
-
 }
 
 
-const kb::string Vec2ToString(const Vec2* v)
+kb::string Vec2ToString(const Vec2* v)
 {
     std::basic_stringstream<SQChar> out;
-    out << _SC("Vec2(") << v->x << _SC(", ") << v->y << _SC(")");
+    out << "Vec2(" << v->x << ", " << v->y << ")";
     return out.str();
 }
 
@@ -244,37 +236,37 @@ TEST_F(KalibriTest, SimpleClassBinding)
 {
     DefaultVM::Set(vm);
 
-    Class<Vec2> vec2(vm, _SC("Vec2"));
+    Class<Vec2> vec2(vm, "Vec2");
 
     vec2
     // Variables
-    .Var(_SC("x"), &Vec2::x)
-    .Var(_SC("y"), &Vec2::y)
+    .Var("x", &Vec2::x)
+    .Var("y", &Vec2::y)
 
     // Operators
-    .Func(_SC("_add"), &Vec2::operator +)
-    .Func(_SC("_mul"), &Vec2::operator *)
-    .Func(_SC("_div"), &Vec2::operator /)
+    .Func("_add", &Vec2::operator +)
+    .Func("_mul", &Vec2::operator *)
+    .Func("_div", &Vec2::operator /)
 
     // Function Disambiguation
-    .Func<Vec2 (Vec2::*)(void) const>(_SC("_unm"), &Vec2::operator -)
-    .Func<Vec2 (Vec2::*)(const Vec2&) const>(_SC("_sub"), &Vec2::operator -)
+    .Func<Vec2 (Vec2::*)(void) const>("_unm", &Vec2::operator -)
+    .Func<Vec2 (Vec2::*)(const Vec2&) const>("_sub", &Vec2::operator -)
 
     // Member Functions
-    .Func(_SC("Length"), &Vec2::Length)
-    .Func(_SC("Distance"), &Vec2::Distance)
-    .Func(_SC("Normalize"), &Vec2::Normalize)
-    .Func(_SC("Dot"), &Vec2::Dot)
+    .Func("Length", &Vec2::Length)
+    .Func("Distance", &Vec2::Distance)
+    .Func("Normalize", &Vec2::Normalize)
+    .Func("Dot", &Vec2::Dot)
 
     // Global Static Function bound as a member function
-    .GlobalFunc(_SC("_tostring"), &Vec2ToString)
+    .GlobalFunc("_tostring", &Vec2ToString)
     ;
 
-    RootTable().Bind(_SC("Vec2"), vec2);
+    RootTable().Bind("Vec2", vec2);
 
     Script script;
 
-    script.CompileString(_SC(" \
+    script.CompileString(" \
         v <- Vec2(); \
         v.x = 1.2; \
         v.y = 3.4; \
@@ -289,16 +281,16 @@ TEST_F(KalibriTest, SimpleClassBinding)
         gTest.EXPECT_FLOAT_EQ(6.8, v.y); \
         gTest.EXPECT_STR_EQ(\"\" + v, \"Vec2(2.4, 6.8)\"); \
         gTest.EXPECT_FLOAT_EQ(v.Length(), 7.211103); \
-        "));
+        ");
     if (kb::Error::Occurred(vm))
     {
-        FAIL() << _SC("Compile Failed: ") << kb::Error::Message(vm);
+        FAIL() << "Compile Failed: " << kb::Error::Message(vm);
     }
 
     script.Run();
     if (kb::Error::Occurred(vm))
     {
-        FAIL() << _SC("Run Failed: ") << kb::Error::Message(vm);
+        FAIL() << "Run Failed: " << kb::Error::Message(vm);
     }
 }
 
@@ -309,7 +301,7 @@ public:
 
     virtual string Speak()
     {
-        return _SC("[Silent]");
+        return "[Silent]";
     }
 };
 
@@ -320,7 +312,7 @@ public:
 
     virtual string Speak()
     {
-        return _SC("Meow!");
+        return "Meow!";
     }
 };
 
@@ -331,7 +323,7 @@ public:
 
     virtual string Speak()
     {
-        return _SC("Woof!");
+        return "Woof!";
     }
 };
 
@@ -345,26 +337,26 @@ TEST_F(KalibriTest, InheritedClassBinding)
     DefaultVM::Set(vm);
 
     // Defining class definitions inline
-    RootTable().Bind(_SC("Animal"),
-                     Class<Animal>(vm, _SC("Animal"))
-                     .Func(_SC("Speak"), &Animal::Speak)
+    RootTable().Bind("Animal",
+                     Class<Animal>(vm, "Animal")
+                     .Func("Speak", &Animal::Speak)
                     );
 
-    RootTable().Bind(_SC("Cat"),
-                     DerivedClass<Cat, Animal>(vm, _SC("Cat"))
-                     .Func(_SC("Speak"), &Cat::Speak)
+    RootTable().Bind("Cat",
+                     DerivedClass<Cat, Animal>(vm, "Cat")
+                     .Func("Speak", &Cat::Speak)
                     );
 
-    RootTable().Bind(_SC("Dog"),
-                     DerivedClass<Dog, Animal>(vm, _SC("Dog"))
-                     .Func(_SC("Speak"), &Dog::Speak)
+    RootTable().Bind("Dog",
+                     DerivedClass<Dog, Animal>(vm, "Dog")
+                     .Func("Speak", &Dog::Speak)
                     );
 
-    RootTable().Func(_SC("MakeSpeak"), &MakeSpeak);
+    RootTable().Func("MakeSpeak", &MakeSpeak);
 
     Script script;
 
-    script.CompileString(_SC(" \
+    script.CompileString(" \
         class Mouse extends Animal { \
             function Speak() { \
                 return \"Squeak!\"; \
@@ -382,16 +374,16 @@ TEST_F(KalibriTest, InheritedClassBinding)
         gTest.EXPECT_STR_EQ(MakeSpeak(c), \"Meow!\"); \
         gTest.EXPECT_STR_EQ(MakeSpeak(d), \"Woof!\"); \
         /*gTest.EXPECT_STR_EQ(MakeSpeak(m), \"Squeak!\");*/ /* This will fail! Classes overridden in squirrel will be exposed as their base native class to C++ */ \
-        "));
+        ");
     if (kb::Error::Occurred(vm))
     {
-        FAIL() << _SC("Compile Failed: ") << kb::Error::Message(vm);
+        FAIL() << "Compile Failed: " << kb::Error::Message(vm);
     }
 
     script.Run();
     if (kb::Error::Occurred(vm))
     {
-        FAIL() << _SC("Run Failed: ") << kb::Error::Message(vm);
+        FAIL() << "Run Failed: " << kb::Error::Message(vm);
     }
 }
 
@@ -414,14 +406,14 @@ TEST_F(KalibriTest, WeakRef)
     DefaultVM::Set(vm);
 
     // Defining class definitions inline
-    RootTable().Bind(_SC("NativeObj"),
-                     Class<NativeObj>(vm, _SC("NativeObj"))
-                     .Func(_SC("Id"), &NativeObj::Id)
+    RootTable().Bind("NativeObj",
+                     Class<NativeObj>(vm, "NativeObj")
+                     .Func("Id", &NativeObj::Id)
                     );
 
     Script script;
 
-    script.CompileString(_SC(" \
+    script.CompileString(" \
         class SqObj { \
             function Id() { \
                 return 3.14; \
@@ -435,16 +427,16 @@ TEST_F(KalibriTest, WeakRef)
         \
         gTest.EXPECT_FLOAT_EQ(3.14, ref1.ref().Id()); \
         gTest.EXPECT_INT_EQ(42, ref2.ref().Id()); \
-        "));
+        ");
     if (kb::Error::Occurred(vm))
     {
-        FAIL() << _SC("Script Compile Failed: ") << kb::Error::Message(vm);
+        FAIL() << "Script Compile Failed: " << kb::Error::Message(vm);
     }
 
     script.Run();
     if (kb::Error::Occurred(vm))
     {
-        FAIL() << _SC("Script Run Failed: ") << kb::Error::Message(vm);
+        FAIL() << "Script Run Failed: " << kb::Error::Message(vm);
     }
 }
 
@@ -469,64 +461,63 @@ public:
     {
         return false;
     }
-
 };
 
-static const SQChar *num_conversions = _SC("\
+static const SQChar *num_conversions = "\
     local numtypes = NumTypes();\
     local i = numtypes.g_int();\
     local d = numtypes.g_float();\
     local t = numtypes.g_true();\
     local f = numtypes.g_false();\
-	gTest.EXPECT_TRUE(i); \
-	gTest.EXPECT_INT_EQ(i, 3); \
-	gTest.EXPECT_FLOAT_EQ(i, 3.0); \
-	gTest.EXPECT_INT_EQ(3, i); \
-	gTest.EXPECT_FLOAT_EQ(3.0, i); \
+    gTest.EXPECT_TRUE(i); \
+    gTest.EXPECT_INT_EQ(i, 3); \
+    gTest.EXPECT_FLOAT_EQ(i, 3.0); \
+    gTest.EXPECT_INT_EQ(3, i); \
+    gTest.EXPECT_FLOAT_EQ(3.0, i); \
     \
-	gTest.EXPECT_TRUE(d); \
-	gTest.EXPECT_INT_EQ(d, 7); \
-	gTest.EXPECT_FLOAT_EQ(d, 7.8); \
-	gTest.EXPECT_INT_EQ(7, d); \
-	gTest.EXPECT_FLOAT_EQ(7.8, d); \
+    gTest.EXPECT_TRUE(d); \
+    gTest.EXPECT_INT_EQ(d, 7); \
+    gTest.EXPECT_FLOAT_EQ(d, 7.8); \
+    gTest.EXPECT_INT_EQ(7, d); \
+    gTest.EXPECT_FLOAT_EQ(7.8, d); \
     \
-	gTest.EXPECT_TRUE(t); \
-	gTest.EXPECT_INT_EQ(t, 1); \
-	gTest.EXPECT_FLOAT_EQ(t, 1.0); \
-	gTest.EXPECT_INT_EQ(1, t); \
+    gTest.EXPECT_TRUE(t); \
+    gTest.EXPECT_INT_EQ(t, 1); \
+    gTest.EXPECT_FLOAT_EQ(t, 1.0); \
+    gTest.EXPECT_INT_EQ(1, t); \
     \
-	gTest.EXPECT_FALSE(f); \
-	gTest.EXPECT_INT_EQ(f, 0); \
-	gTest.EXPECT_FLOAT_EQ(f, 0.0); \
-	gTest.EXPECT_INT_EQ(0, f); \
-	gTest.EXPECT_FLOAT_EQ(0.0, f); \
+    gTest.EXPECT_FALSE(f); \
+    gTest.EXPECT_INT_EQ(f, 0); \
+    gTest.EXPECT_FLOAT_EQ(f, 0.0); \
+    gTest.EXPECT_INT_EQ(0, f); \
+    gTest.EXPECT_FLOAT_EQ(0.0, f); \
     \
-    ");
+    ";
 
 TEST_F(KalibriTest, NumConversion)
 {
     DefaultVM::Set(vm);
 
-    kb::Class<NumTypes> numtypes(vm, _SC("NumTypes"));
+    kb::Class<NumTypes> numtypes(vm, "NumTypes");
 
-    numtypes.Func(_SC("g_int"), &NumTypes::g_int);
-    numtypes.Func(_SC("g_float"), &NumTypes::g_float);
-    numtypes.Func(_SC("g_true"), &NumTypes::g_true);
-    numtypes.Func(_SC("g_false"), &NumTypes::g_false);
+    numtypes.Func("g_int", &NumTypes::g_int);
+    numtypes.Func("g_float", &NumTypes::g_float);
+    numtypes.Func("g_true", &NumTypes::g_true);
+    numtypes.Func("g_false", &NumTypes::g_false);
 
-    kb::RootTable(vm).Bind(_SC("NumTypes"), numtypes);
+    kb::RootTable(vm).Bind("NumTypes", numtypes);
 
     Script script;
     script.CompileString(num_conversions);
     if (kb::Error::Occurred(vm))
     {
-        FAIL() << _SC("Compile Failed: ") << kb::Error::Message(vm);
+        FAIL() << "Compile Failed: " << kb::Error::Message(vm);
     }
 
     script.Run();
     if (kb::Error::Occurred(vm))
     {
-        FAIL() << _SC("Run Failed: ") << kb::Error::Message(vm);
+        FAIL() << "Run Failed: " << kb::Error::Message(vm);
     }
 }
 
@@ -548,19 +539,19 @@ public:
 TEST_F(KalibriTest, CEnumBinding)
 {
     DefaultVM::Set(vm);
-    Class<F> f_class(vm, _SC("F"));
+    Class<F> f_class(vm, "F");
     int i = (int) BAR;
-    f_class.SetStaticValue(_SC("bar"), i);
+    f_class.SetStaticValue("bar", i);
     ASSERT_TRUE(1);
-    f_class.SetStaticValue(_SC("bar"), BAR);
+    f_class.SetStaticValue("bar", BAR);
     ASSERT_TRUE(1);
 
-    f_class.Func(_SC("fn"), &F::fn);
+    f_class.Func("fn", &F::fn);
 
-    RootTable().Bind(_SC("F"), f_class);
+    RootTable().Bind("F", f_class);
 
     Script script;
-    script.CompileString(_SC(" \
+    script.CompileString(" \
         gTest.EXPECT_INT_EQ(F.bar, 123); \
         f <- F(); \
         gTest.EXPECT_INT_EQ(124, f.fn(124)); \
@@ -568,47 +559,45 @@ TEST_F(KalibriTest, CEnumBinding)
         gTest.EXPECT_INT_EQ(126, f.fn(126)); \
         gTest.EXPECT_INT_EQ(300, f.fn(300)); \
         local raised = false ; \
-        try {\
+        try { \
             local a = []; /* an aerray */ \
             f.fn(a); \
             gTest.EXPECT_INT_EQ(0, 1); \
-        }\
-        catch (ex) {\
-            raised = true;\
+        } \
+        catch (ex) { \
+            raised = true; \
             print(ex + \"\\n\"); \
-        }\
+        } \
         gTest.EXPECT_TRUE(raised); \
         raised = false ; \
-        try {\
+        try { \
             local a =\"a string\"; \
             f.fn(a); \
             gTest.EXPECT_INT_EQ(0, 1); \
-        }\
-        catch (ex) {\
-            raised = true;\
+        } \
+        catch (ex) { \
+            raised = true; \
             print(ex + \"\\n\"); \
-        }\
+        } \
         gTest.EXPECT_TRUE(raised); \
-        "));
+        ");
     if (kb::Error::Occurred(vm))
     {
-        FAIL() << _SC("Compile Failed: ") << kb::Error::Message(vm);
+        FAIL() << "Compile Failed: " << kb::Error::Message(vm);
     }
 
     script.Run();
     if (kb::Error::Occurred(vm))
     {
-        FAIL() << _SC("Run Failed: ") << kb::Error::Message(vm);
+        FAIL() << "Run Failed: " << kb::Error::Message(vm);
     }
-
 }
 
 
 class NoDefaultConstructor
 {
 public:
-
-    NoDefaultConstructor(const char *s) {}
+    NoDefaultConstructor(const char *s) : v(0) {}
     void f() {}
     void fa(int b) {}
 
@@ -619,83 +608,76 @@ public:
 class NoDefaultConstructor2: public NoDefaultConstructor
 {
 public:
-
     NoDefaultConstructor2(const char *s, const char *s1) : NoDefaultConstructor(s) { }
     void f2() {}
-
 };
 
 TEST_F(KalibriTest, NoDefaultConstructorClasses)
 {
     DefaultVM::Set(vm);
     NoDefaultConstructor n1("test");
-    Class<NoDefaultConstructor> N(vm, _SC("N"));
-    N.Ctor<char *>();
-    N.Func(_SC("f"), &NoDefaultConstructor::f);
-    N.Func(_SC("fa"), &NoDefaultConstructor::fa);
-    N.Var(_SC("v"), &NoDefaultConstructor::v);
-    RootTable().Bind(_SC("N"), N);
+    Class<NoDefaultConstructor> N(vm, "N");
+    N.Ctor<char*>();
+    N.Func("f", &NoDefaultConstructor::f);
+    N.Func("fa", &NoDefaultConstructor::fa);
+    N.Var("v", &NoDefaultConstructor::v);
+    RootTable().Bind("N", N);
 
-    DerivedClass<NoDefaultConstructor2, NoDefaultConstructor> N2(vm, _SC("N2"));
-    N2.Ctor<char *, char *>();
-    N2.Func(_SC("f2"), &NoDefaultConstructor2::f2);
-    RootTable().Bind(_SC("N2"), N2);
-    N.SetStaticValue(_SC("sv"),  BAR);
+    DerivedClass<NoDefaultConstructor2, NoDefaultConstructor> N2(vm, "N2");
+    N2.Ctor<char*, char*>();
+    N2.Func("f2", &NoDefaultConstructor2::f2);
+    RootTable().Bind("N2", N2);
+    N.SetStaticValue("sv", BAR);
     if (kb::Error::Occurred(vm))
     {
-#ifndef SQUNICODE
-        std::cerr << _SC("set static var failed, ") << kb::Error::Message(vm);
-#endif
+        std::cerr << "set static var failed, " << kb::Error::Message(vm);
     }
 
     Script script;
-    script.CompileString(_SC(" \
+    script.CompileString(" \
         class SC {} \
         /* note n <- N() would crash, no argument checking in this case, to do */ \
-        n <- N(\"t\");\
+        n <- N(\"t\"); \
         n2 <- N2(\"t\", \"t2\"); \
         n3 <- n2; \
         \
-        n.f();\
-        n2.f();\
+        n.f(); \
+        n2.f(); \
         n2.f2(); \
         i <- 3; \
         n2.v = i; \
         \
         local sc = SC(); \
-        local raised = false;\
+        local raised = false; \
         try { \
             n.v = n2; \
             gTest.EXPECT_INT_EQ(0, 1); \
-        }\
-        catch (ex) {\
-            raised = true;\
+        } \
+        catch (ex) { \
+            raised = true; \
             print(ex + \"\\n\"); \
-        }\
+        } \
         gTest.EXPECT_TRUE(raised); \
         \
-        raised = false;\
+        raised = false; \
         try { \
             n22 <- N2(\"t\", \"t2\", 3); \
             gTest.EXPECT_INT_EQ(0, 1); \
-        }\
-        catch (ex) {\
-            raised = true;\
+        } \
+        catch (ex) { \
+            raised = true; \
             print(ex + \"\\n\"); \
-        }\
+        } \
         gTest.EXPECT_TRUE(raised); \
-        "));
+        ");
     if (kb::Error::Occurred(vm))
     {
-        FAIL() << _SC("Compile Failed: ") << kb::Error::Message(vm);
+        FAIL() << "Compile Failed: " << kb::Error::Message(vm);
     }
 
     script.Run();
     if (kb::Error::Occurred(vm))
     {
-        FAIL() << _SC("Run Failed: ") << kb::Error::Message(vm);
+        FAIL() << "Run Failed: " << kb::Error::Message(vm);
     }
-
 }
-
-

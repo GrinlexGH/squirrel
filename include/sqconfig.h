@@ -54,11 +54,7 @@ typedef SQInteger SQRESULT;
 typedef char SQChar;
 #define _SC(a) a
 #define scstrcmp    strcmp
-#ifdef _MSC_VER
-#define scsprintf   _snprintf
-#else
 #define scsprintf   snprintf
-#endif
 #define scstrlen    strlen
 #define scstrtod    strtod
 #ifdef _SQ64

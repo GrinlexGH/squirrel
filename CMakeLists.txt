@@ -12,7 +12,7 @@ option(BUILD_KALIBRI_TESTS "Build tests or not." ON)
 
 if (NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE "Release")
-endif ()
+endif()
 
 include(GNUInstallDirs)
 
@@ -49,16 +49,20 @@ else()
   set(SQSTDLIB_NAME sqstdlib)
 endif()
 
+set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+
 add_subdirectory(squirrel)
 add_subdirectory(sqstdlib)
 if(NOT SQ_DISABLE_INTERPRETER)
   add_subdirectory(sq)
 endif()
 add_subdirectory(kalibri)
+
 if(BUILD_KALIBRI_TESTS)
   set(BUILD_GMOCK OFF CACHE BOOL "Builds the googlemock subproject" FORCE)
   set(gtest_force_shared_crt ON CACHE BOOL "Use shared (DLL) run-time lib even when Google Test is built as static lib." FORCE)
   add_subdirectory(googletest)
+  set_target_properties(gtest gtest_main PROPERTIES FOLDER "gtest")
   add_subdirectory(kalibritests)
 endif()
 

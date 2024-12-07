@@ -45,12 +45,6 @@
 namespace kb
 {
 
-#ifdef SQUNICODE
-#define scvprintf(s, vl) vwprintf(widen(s).c_str(), vl)
-#else
-#define scvprintf vprintf
-#endif
-
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Helper class that wraps a Squirrel virtual machine in a C++ API
 ///
@@ -93,7 +87,7 @@ private:
     {
         va_list vl;
         va_start(vl, s);
-        scvprintf(s, vl);
+        vprintf(s, vl);
         va_end(vl);
     }
 
@@ -122,11 +116,7 @@ private:
                                      SQInteger column)
     {
         SQChar buf[512];
-	#ifdef _MSC_VER
         scsprintf(buf, 512, _SC("%s:%d:%d: %s"), source, (int) line, (int) column, desc);
-	#else
-		scsprintf(buf, _SC("%s:%d:%d: %s"), source, (int) line, (int) column, desc);
-	#endif
         buf[sizeof(buf)/sizeof(SQChar) - 1] = 0;
         s_getVM(v)->m_lastErrorMsg = buf;
     }
