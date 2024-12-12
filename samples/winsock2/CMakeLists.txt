@@ -12,6 +12,7 @@ add_library(winsock2 SHARED
     winsock.cpp
 )
 
+# Put here your installed squirrel library
 set(CMAKE_PREFIX_PATH ${PROJECT_SOURCE_DIR}/libs)
 
 find_package(squirrel REQUIRED)
