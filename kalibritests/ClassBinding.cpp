@@ -34,9 +34,9 @@ class C
     void default_values()
     {
         i = -1;
-        s = _SC("uninitialized");
+        s = "uninitialized";
         f = -2.0;
-        s2 = _SC("not initialized");
+        s2 = "not initialized";
     }
 
 public:

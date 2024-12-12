@@ -5,3 +5,6 @@ lib/
 
 # Folders created at documentation generation
 doc/build/
+
+# Folders for additional dependencies
+libs/

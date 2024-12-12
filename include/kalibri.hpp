@@ -14,7 +14,13 @@ SQRESULT kb_register_import(HSQUIRRELVM vm);
 
 extern "C"
 #if _WIN32
-__declspec(dllexport)
+__declspec(
+#ifdef KALIBRI_IMPORT
+    dllimport
+#else
+    dllexport
+#endif
+)
 #else
 __attribute__((visibility("default")))
 #endif

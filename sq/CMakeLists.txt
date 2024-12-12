@@ -3,6 +3,7 @@ if(NOT DISABLE_DYNAMIC)
   add_executable(squirrel::interpreter ALIAS sq)
   set_target_properties(sq PROPERTIES EXPORT_NAME interpreter)
   target_link_libraries(sq squirrel sqstdlib kalibri)
+  target_compile_definitions(sq PRIVATE KALIBRI_IMPORT)
   if(NOT SQ_DISABLE_INSTALLER)
     install(TARGETS sq EXPORT squirrel RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT Runtime)
   endif()
@@ -20,6 +21,7 @@ if(NOT DISABLE_STATIC)
   if(NOT SQ_DISABLE_INSTALLER)
     install(TARGETS sq_static EXPORT squirrel RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT Runtime)
   endif()
+  target_compile_definitions(sq_static PRIVATE KALIBRI_IMPORT)
   target_include_directories(sq_static PUBLIC
     "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>"
     "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"

@@ -53,7 +53,6 @@ TEST_F(KalibriTest, ArrayGet) {
 
     const int length = static_cast<const int>(array.Length());
     EXPECT_EQ(length, 12);
-
     for (int i = 0; i < length; i++)
     {
         SharedPtr<int> t = array.GetValue<int>(i);
@@ -93,7 +92,7 @@ TEST_F(KalibriTest, ArrayGet) {
 }
 
 
-void touch_element(kb::Array & a, int index, int val)
+void touch_element(kb::Array& a, int index, int val)
 {
     a.SetValue(index, val);
 }
@@ -105,35 +104,34 @@ void touch_element2(kb::Array a, int index, int val)
 
 TEST_F(KalibriTest, PassingArrayIn) {
     static const int SIZE = 56;
-    static const SQChar *sq_code = _SC("\
+    static const SQChar *sq_code = "\
         local i; \
         for (i = 0; i < a.len(); i++) \
-            touch_element2(a, i, 5 - i);\
+            touch_element2(a, i, 5 - i); \
         \
         for (i = 0; i < a.len(); i++) \
-            gTest.EXPECT_INT_EQ(a[i], 5 - i);\
+            gTest.EXPECT_INT_EQ(a[i], 5 - i); \
         \
         for (i = 0; i < a.len(); i++) \
-            touch_element(a, i, -i);\
+            touch_element(a, i, -i); \
         \
         for (i = 0; i < a.len(); i++) \
-            gTest.EXPECT_INT_EQ(a[i], - i);\
+            gTest.EXPECT_INT_EQ(a[i], -i); \
         \
-    ");
-
+    ";
     DefaultVM::Set(vm);
-    RootTable().Func(_SC("touch_element"), &touch_element);
-    RootTable().Func(_SC("touch_element2"), &touch_element2);
+
+    RootTable().Func("touch_element", &touch_element);
+    RootTable().Func("touch_element2", &touch_element2);
 
     int i;
     Array array(vm, SIZE);
-    RootTable(vm).Bind(_SC("a"), array);
+    RootTable(vm).Bind("a", array);
     for (i = 0; i < SIZE; i++)
         touch_element(array, i, i);
 
     int length = static_cast<int>(array.Length());
     EXPECT_EQ(length, SIZE);
-
     for (i = 0; i < length; i++)
     {
         SharedPtr<int> t = array.GetValue<int>(i);
@@ -144,17 +142,16 @@ TEST_F(KalibriTest, PassingArrayIn) {
     Script script;
     script.CompileString(sq_code);
     if (kb::Error::Occurred(vm)) {
-        FAIL() << _SC("Compile Failed: ") << kb::Error::Message(vm);
+        FAIL() << "Compile Failed: " << kb::Error::Message(vm);
     }
 
     script.Run();
     if (kb::Error::Occurred(vm)) {
-        FAIL() << _SC("Run Failed: ") << kb::Error::Message(vm);
+        FAIL() << "Run Failed: " << kb::Error::Message(vm);
     }
 
     length = static_cast<int>(array.Length());
     EXPECT_EQ(length, SIZE);
-
     for (i = 0; i < length; i++)
     {
         SharedPtr<int> t = array.GetValue<int>(i);
@@ -166,7 +163,7 @@ TEST_F(KalibriTest, PassingArrayIn) {
 
 TEST_F(KalibriTest, PassingArrayIn2) {
     static const int SIZE = 56;
-    static const SQChar *sq_code = _SC("\
+    static const SQChar *sq_code = "\
         local i; \
         local a2 = array(12); \
         for (i = 0; i < a2.len(); i++) \
@@ -181,19 +178,20 @@ TEST_F(KalibriTest, PassingArrayIn2) {
         for (i = 0; i < a2.len(); i++) \
             gTest.EXPECT_INT_EQ(a2[i], 1 + i); \
         \
-    ");
+    ";
     DefaultVM::Set(vm);
-    RootTable().Func(_SC("touch_element2"), &touch_element2);
-    RootTable().Func(_SC("touch_element"), &touch_element);
+
+    RootTable().Func("touch_element2", &touch_element2);
+    RootTable().Func("touch_element", &touch_element);
 
     Script script;
     script.CompileString(sq_code);
     if (kb::Error::Occurred(vm)) {
-        FAIL() << _SC("Compile Failed: ") << kb::Error::Message(vm);
+        FAIL() << "Compile Failed: " << kb::Error::Message(vm);
     }
 
     script.Run();
     if (kb::Error::Occurred(vm)) {
-        FAIL() << _SC("Run Failed: ") << kb::Error::Message(vm);
+        FAIL() << "Run Failed: " << kb::Error::Message(vm);
     }
 }
