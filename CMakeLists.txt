@@ -91,34 +91,37 @@ if(NOT DISABLE_DYNAMIC)
 endif()
 
 if(NOT SQ_DISABLE_INSTALLER AND NOT SQ_DISABLE_HEADER_INSTALLER)
-  install(FILES
-    include/kalibri.hpp
-    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-    COMPONENT Development
-  )
+  if(NOT SQ_DISABLE_KALIBRI)
+    install(FILES
+      include/kalibri.hpp
+      DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+      COMPONENT Development
+    )
 
-  install(FILES
-    include/kalibri/kballocator.hpp
-    include/kalibri/kbarray.hpp
-    include/kalibri/kbbytecode.hpp
-    include/kalibri/kbclass.hpp
-    include/kalibri/kbclasstype.hpp
-    include/kalibri/kbconst.hpp
-    include/kalibri/kbfunction.hpp
-    include/kalibri/kbglobalmethods.hpp
-    include/kalibri/kbmembermethods.hpp
-    include/kalibri/kbmodule.hpp
-    include/kalibri/kbobject.hpp
-    include/kalibri/kboverloadmethods.hpp
-    include/kalibri/kbscript.hpp
-    include/kalibri/kbtable.hpp
-    include/kalibri/kbtypes.hpp
-    include/kalibri/kbunicode.hpp
-    include/kalibri/kbutil.hpp
-    include/kalibri/kbvm.hpp
-    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/kalibri
-    COMPONENT Development
-  )
+    install(FILES
+      include/kalibri/kballocator.hpp
+      include/kalibri/kbarray.hpp
+      include/kalibri/kbbytecode.hpp
+      include/kalibri/kbclass.hpp
+      include/kalibri/kbclasstype.hpp
+      include/kalibri/kbconst.hpp
+      include/kalibri/kbfunction.hpp
+      include/kalibri/kbglobalmethods.hpp
+      include/kalibri/kbmembermethods.hpp
+      include/kalibri/kbmodule.hpp
+      include/kalibri/kbobject.hpp
+      include/kalibri/kboverloadmethods.hpp
+      include/kalibri/kbscript.hpp
+      include/kalibri/kbtable.hpp
+      include/kalibri/kbtypes.hpp
+      include/kalibri/kbunicode.hpp
+      include/kalibri/kbutil.hpp
+      include/kalibri/kbvm.hpp
+      DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/kalibri
+      COMPONENT Development
+    )
+  endif()
+
   install(FILES
     include/sqconfig.h
     include/squirrel.h

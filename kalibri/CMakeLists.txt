@@ -16,7 +16,9 @@ if(NOT DISABLE_DYNAMIC)
       LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT Development NAMELINK_ONLY
       )
   endif()
+  get_target_property(SQUIRREL_SOURCE_DIR squirrel SOURCE_DIR)
   target_include_directories(kalibri PUBLIC
+    "$<BUILD_INTERFACE:${SQUIRREL_SOURCE_DIR}>"
     "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>"
     "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
     )
@@ -30,7 +32,9 @@ if(NOT DISABLE_STATIC)
   if(NOT SQ_DISABLE_INSTALLER)
     install(TARGETS kalibri_static EXPORT squirrel ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT Development)
   endif()
+  get_target_property(SQUIRREL_SOURCE_DIR squirrel SOURCE_DIR)
   target_include_directories(kalibri_static PUBLIC
+    "$<BUILD_INTERFACE:${SQUIRREL_SOURCE_DIR}>"
     "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>"
     "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
     )

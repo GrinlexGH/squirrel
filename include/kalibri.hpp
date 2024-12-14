@@ -12,16 +12,5 @@
 
 SQRESULT kb_register_import(HSQUIRRELVM vm);
 
-extern "C"
-#if _WIN32
-__declspec(
-#ifdef KALIBRI_IMPORT
-    dllimport
-#else
-    dllexport
-#endif
-)
-#else
-__attribute__((visibility("default")))
-#endif
-SQRESULT sqmodule_load(HSQUIRRELVM vm, HSQAPI api);
+extern "C" KALIBRI_API SQRESULT sqmodule_load(HSQUIRRELVM vm, HSQAPI api);
+extern "C" KALIBRI_API void sqmodule_destruct(HSQUIRRELVM vm); // Unnecessary destructor

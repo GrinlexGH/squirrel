@@ -25,7 +25,6 @@ if(NOT DISABLE_DYNAMIC)
   endif()
   target_include_directories(sqstdlib PUBLIC
     "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>"
-    "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/kalibri/include>"
     "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
     )
 endif()

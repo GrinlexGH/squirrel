@@ -22,9 +22,16 @@ target_link_libraries(winsock2 PRIVATE
     ws2_32
 )
 
+# Important to specify that you are using kalibri to export your library
+target_compile_definitions(winsock2 PRIVATE KALIBRI_EXPORT)
+
 add_custom_command(
     TARGET winsock2 POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different
     ${CMAKE_CURRENT_SOURCE_DIR}/scripts
     $<TARGET_FILE_DIR:winsock2>/scripts
 )
+
+
+add_executable(server server.cpp)
+target_link_libraries(server PRIVATE ws2_32)

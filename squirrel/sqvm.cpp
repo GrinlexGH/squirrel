@@ -147,6 +147,14 @@ void SQVM::Finalize()
 
 SQVM::~SQVM()
 {
+    for (SQModuleDestructor_t& destructor : _kalibriModuleDestructors)
+    {
+        if (destructor)
+        {
+            destructor(this);
+        }
+    }
+
     Finalize();
     REMOVE_FROM_CHAIN(&_ss(this)->_gc_chain,this);
 }

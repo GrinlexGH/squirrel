@@ -1,4 +1,5 @@
 #include <kalibri.hpp>
+#include <sqvm.h>
 
 #include <filesystem>
 
@@ -290,9 +291,14 @@ static SQRESULT kb_importlib(HSQUIRRELVM v, const SQChar* moduleName)
         return SQ_ERROR;
     }
 
-    SQModuleLoad_t moduleLoader = (SQModuleLoad_t)(void*)GetFunc(externalLibrary, "sqmodule_load");
+    SQModuleLoad_t moduleLoader = (SQModuleLoad_t)GetFunc(externalLibrary, "sqmodule_load");
     if (!moduleLoader) {
         return SQ_ERROR;
+    }
+
+    SQModuleDestructor_t moduleDestructor = (SQModuleDestructor_t)GetFunc(externalLibrary, "sqmodule_destruct");
+    if (moduleDestructor) {
+        v->_kalibriModuleDestructors.push_back(moduleDestructor);
     }
 
     if (sqapi == nullptr) {
