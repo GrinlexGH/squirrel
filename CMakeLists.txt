@@ -64,7 +64,7 @@ if(BUILD_KALIBRI_TESTS)
   set(gtest_force_shared_crt ON CACHE BOOL "Use shared (DLL) run-time lib even when Google Test is built as static lib." FORCE)
   add_subdirectory(googletest)
   set_target_properties(gtest gtest_main PROPERTIES FOLDER "gtest")
-  add_subdirectory(kalibritests)
+  add_subdirectory(tests)
 endif()
 
 if(CMAKE_SIZEOF_VOID_P EQUAL 8)
