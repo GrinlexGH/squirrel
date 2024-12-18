@@ -18,3 +18,5 @@ Uses C++ 17
 - [ ] stack dump from script
 - [x] Module destruction
 - [ ] Write some sample libraries
+- [ ] export only specific table from `.nut` script module by global `return` operator
+- [ ] export whole file root table if there is no global `return`
