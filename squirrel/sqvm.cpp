@@ -621,19 +621,19 @@ bool SQVM::CLOSURE_OP(SQObjectPtr &target, SQFunctionProto *func,SQInteger bound
             closure->_defaultparams[i] = _stack._vals[_stackbase + spos];
         }
     }
-	if (boundtarget != 0xFF) {
-		SQObjectPtr &val = _stack._vals[_stackbase + boundtarget];
-		SQObjectType t = sq_type(val);
-		if (t == OT_TABLE || t == OT_CLASS || t == OT_INSTANCE || t == OT_ARRAY) {
-			closure->_env = _refcounted(val)->GetWeakRef(t);
-			__ObjAddRef(closure->_env);
-		}
-		else {
-			Raise_Error(_SC("cannot bind a %s as environment object"), IdType2Name(t));
-			closure->Release();
-			return false;
-		}
-	}
+    if (boundtarget != 0xFF) {
+        SQObjectPtr &val = _stack._vals[_stackbase + boundtarget];
+        SQObjectType t = sq_type(val);
+        if (t == OT_TABLE || t == OT_CLASS || t == OT_INSTANCE || t == OT_ARRAY) {
+            closure->_env = _refcounted(val)->GetWeakRef(t);
+            __ObjAddRef(closure->_env);
+        }
+        else {
+            Raise_Error(_SC("cannot bind a %s as environment object"), IdType2Name(t));
+            closure->Release();
+            return false;
+        }
+    }
     target = closure;
     return true;
 
@@ -668,14 +668,14 @@ bool SQVM::CLASS_OP(SQObjectPtr &target,SQInteger baseclass,SQInteger attributes
 
 bool SQVM::IsEqual(const SQObjectPtr &o1,const SQObjectPtr &o2,bool &res)
 {
-	SQObjectType t1 = sq_type(o1), t2 = sq_type(o2);
+    SQObjectType t1 = sq_type(o1), t2 = sq_type(o2);
     if(t1 == t2) {
-		if (t1 == OT_FLOAT) {
-			res = (_float(o1) == _float(o2));
-		}
-		else {
-			res = (_rawval(o1) == _rawval(o2));
-		}
+        if (t1 == OT_FLOAT) {
+            res = (_float(o1) == _float(o2));
+        }
+        else {
+            res = (_rawval(o1) == _rawval(o2));
+        }
     }
     else {
         if(sq_isnumeric(o1) && sq_isnumeric(o2)) {
@@ -743,7 +743,7 @@ bool SQVM::Execute(SQObjectPtr &closure, SQInteger nargs, SQInteger stackbase,SQ
     }
 
 exception_restore:
-    //
+    // INSTRUCTION EXECUTE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     {
         for(;;)
         {
@@ -785,7 +785,7 @@ exception_restore:
                         continue;
                     case OT_NATIVECLOSURE: {
                         bool suspend;
-						bool tailcall;
+                        bool tailcall;
                         _GUARD(CallNative(_nativeclosure(clo), arg3, _stackbase+arg2, clo, (SQInt32)sarg0, suspend, tailcall));
                         if(suspend){
                             _suspended = SQTrue;
@@ -1039,9 +1039,9 @@ exception_restore:
             case _OP_YIELD:{
                 if(ci->_generator) {
                     if(sarg1 != MAX_FUNC_STACKSIZE) temp_reg = STK(arg1);
-					if (_openouters) CloseOuters(&_stack._vals[_stackbase]);
+                    if (_openouters) CloseOuters(&_stack._vals[_stackbase]);
                     _GUARD(ci->_generator->Yield(this,arg2));
-					traps -= ci->_etraps;
+                    traps -= ci->_etraps;
                     if(sarg1 != MAX_FUNC_STACKSIZE) _Swap(STK(arg1),temp_reg);//STK(arg1) = temp_reg;
                 }
                 else { Raise_Error(_SC("trying to yield a '%s',only genenerator can be yielded"), GetTypeName(ci->_generator)); SQ_THROW();}
@@ -1098,6 +1098,10 @@ exception_restore:
             }
             case _OP_CLOSE:
                 if(_openouters) CloseOuters(&(STK(arg1)));
+                continue;
+            case _OP_IMPORT: {
+                SQObjectPtr path = ci->_literals[arg1];
+            }
                 continue;
             }
 
@@ -1213,7 +1217,7 @@ bool SQVM::CallNative(SQNativeClosure *nclosure, SQInteger nargs, SQInteger newb
 
     if(!EnterFrame(newbase, newtop, false)) return false;
     ci->_closure  = nclosure;
-	ci->_target = target;
+    ci->_target = target;
 
     SQInteger outers = nclosure->_noutervalues;
     for (SQInteger i = 0; i < outers; i++) {
@@ -1228,11 +1232,11 @@ bool SQVM::CallNative(SQNativeClosure *nclosure, SQInteger nargs, SQInteger newb
     _nnativecalls--;
 
     suspend = false;
-	tailcall = false;
-	if (ret == SQ_TAILCALL_FLAG) {
-		tailcall = true;
-		return true;
-	}
+    tailcall = false;
+    if (ret == SQ_TAILCALL_FLAG) {
+        tailcall = true;
+        return true;
+    }
     else if (ret == SQ_SUSPEND_FLAG) {
         suspend = true;
     }
@@ -1254,19 +1258,19 @@ bool SQVM::CallNative(SQNativeClosure *nclosure, SQInteger nargs, SQInteger newb
 
 bool SQVM::TailCall(SQClosure *closure, SQInteger parambase,SQInteger nparams)
 {
-	SQInteger last_top = _top;
-	SQObjectPtr clo = closure;
-	if (ci->_root)
-	{
-		Raise_Error("root calls cannot invoke tailcalls");
-		return false;
-	}
-	for (SQInteger i = 0; i < nparams; i++) STK(i) = STK(parambase + i);
-	bool ret = StartCall(closure, ci->_target, nparams, _stackbase, true);
-	if (last_top >= _top) {
-		_top = last_top;
-	}
-	return ret;
+    SQInteger last_top = _top;
+    SQObjectPtr clo = closure;
+    if (ci->_root)
+    {
+        Raise_Error("root calls cannot invoke tailcalls");
+        return false;
+    }
+    for (SQInteger i = 0; i < nparams; i++) STK(i) = STK(parambase + i);
+    bool ret = StartCall(closure, ci->_target, nparams, _stackbase, true);
+    if (last_top >= _top) {
+        _top = last_top;
+    }
+    return ret;
 }
 
 #define FALLBACK_OK         0
@@ -1401,7 +1405,7 @@ bool SQVM::Set(const SQObjectPtr &self,const SQObjectPtr &key,const SQObjectPtr 
             return false;
         }
         return true;
-  	case OT_USERDATA: break; // must fall back
+    case OT_USERDATA: break; // must fall back
     default:
         Raise_Error(_SC("trying to set '%s'"),GetTypeName(self));
         return false;

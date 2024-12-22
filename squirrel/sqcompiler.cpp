@@ -5,6 +5,7 @@
 #ifndef NO_COMPILER
 #include <stdarg.h>
 #include <setjmp.h>
+#include <string>
 #include "sqopcodes.h"
 #include "sqstring.h"
 #include "sqfuncproto.h"
@@ -307,6 +308,7 @@ public:
             strongid.Null();
             }
             break;
+        case TK_IMPORT: ImportStatement(); break;
         default:
             CommaExpr();
             _fs->DiscardTarget();
@@ -314,6 +316,18 @@ public:
             break;
         }
         _fs->SnoozeOpt();
+    }
+
+    void ImportStatement()
+    {
+        Lex();
+        Expect(TK_STRING_LITERAL);
+        _fs->AddInstruction(
+            _OP_IMPORT,
+            _fs->PushTarget(),
+            _fs->GetConstant(_fs->CreateString(_lex._svalue, _lex._longstr.size() - 1))
+        );
+        Lex();
     }
     void EmitDerefOp(SQOpcode op)
     {
@@ -945,30 +959,30 @@ public:
          SQInteger stackbase = _fs->PopTarget();
          SQInteger closure = _fs->PopTarget();
          _fs->AddInstruction(_OP_CALL, _fs->PushTarget(), closure, stackbase, nargs);
-		 if (_token == '{')
-		 {
-			 SQInteger retval = _fs->TopTarget();
-			 SQInteger nkeys = 0;
-			 Lex();
-			 while (_token != '}') {
-				 switch (_token) {
-				 case _SC('['):
-					 Lex(); CommaExpr(); Expect(_SC(']'));
-					 Expect(_SC('=')); Expression();
-					 break;
-				 default:
-					 _fs->AddInstruction(_OP_LOAD, _fs->PushTarget(), _fs->GetConstant(Expect(TK_IDENTIFIER)));
-					 Expect(_SC('=')); Expression();
-					 break;
-				 }
-				 if (_token == ',') Lex();
-				 nkeys++;
-				 SQInteger val = _fs->PopTarget();
-				 SQInteger key = _fs->PopTarget();
-				 _fs->AddInstruction(_OP_SET, 0xFF, retval, key, val);
-			 }
-			 Lex();
-		 }
+         if (_token == '{')
+         {
+             SQInteger retval = _fs->TopTarget();
+             SQInteger nkeys = 0;
+             Lex();
+             while (_token != '}') {
+                 switch (_token) {
+                 case _SC('['):
+                     Lex(); CommaExpr(); Expect(_SC(']'));
+                     Expect(_SC('=')); Expression();
+                     break;
+                 default:
+                     _fs->AddInstruction(_OP_LOAD, _fs->PushTarget(), _fs->GetConstant(Expect(TK_IDENTIFIER)));
+                     Expect(_SC('=')); Expression();
+                     break;
+                 }
+                 if (_token == ',') Lex();
+                 nkeys++;
+                 SQInteger val = _fs->PopTarget();
+                 SQInteger key = _fs->PopTarget();
+                 _fs->AddInstruction(_OP_SET, 0xFF, retval, key, val);
+             }
+             Lex();
+         }
     }
     void ParseTableOrClass(SQInteger separator,SQInteger terminator)
     {
@@ -994,11 +1008,11 @@ public:
                 SQInteger tk = _token;
                 Lex();
                 SQObject id = tk == TK_FUNCTION ? Expect(TK_IDENTIFIER) : _fs->CreateString(_SC("constructor"));
-				_fs->AddInstruction(_OP_LOAD, _fs->PushTarget(), _fs->GetConstant(id));
-				SQInteger boundtarget = 0xFF;
-				if (_token == _SC('[')) {
-					boundtarget = ParseBindEnv();
-				}
+                _fs->AddInstruction(_OP_LOAD, _fs->PushTarget(), _fs->GetConstant(id));
+                SQInteger boundtarget = 0xFF;
+                if (_token == _SC('[')) {
+                    boundtarget = ParseBindEnv();
+                }
                 Expect(_SC('('));
                 
                 CreateFunction(id, boundtarget);
@@ -1044,12 +1058,12 @@ public:
         SQObject varname;
         Lex();
         if( _token == TK_FUNCTION) {
-			SQInteger boundtarget = 0xFF;
+            SQInteger boundtarget = 0xFF;
             Lex();
-			varname = Expect(TK_IDENTIFIER);
-			if (_token == _SC('[')) {
-				boundtarget = ParseBindEnv();
-			}
+            varname = Expect(TK_IDENTIFIER);
+            if (_token == _SC('[')) {
+                boundtarget = ParseBindEnv();
+            }
             Expect(_SC('('));
             CreateFunction(varname,0xFF,false);
             _fs->AddInstruction(_OP_CLOSURE, _fs->PushTarget(), _fs->_functions.size() - 1, boundtarget);
@@ -1198,7 +1212,7 @@ public:
         
         END_BREAKBLE_BLOCK(continuetrg);
 
-		END_SCOPE();
+        END_SCOPE();
     }
     void ForEachStatement()
     {
@@ -1310,10 +1324,10 @@ public:
             _fs->AddInstruction(_OP_LOAD, _fs->PushTarget(), _fs->GetConstant(id));
             if(_token == TK_DOUBLE_COLON) Emit2ArgsOP(_OP_GET);
         }
-		SQInteger boundtarget = 0xFF;
-		if (_token == _SC('[')) {
-			boundtarget = ParseBindEnv();
-		}
+        SQInteger boundtarget = 0xFF;
+        if (_token == _SC('[')) {
+            boundtarget = ParseBindEnv();
+        }
         Expect(_SC('('));
         CreateFunction(id, boundtarget);
         _fs->AddInstruction(_OP_CLOSURE, _fs->PushTarget(), _fs->_functions.size() - 1, boundtarget);
@@ -1442,23 +1456,23 @@ public:
             END_SCOPE();
         }
     }
-	SQInteger ParseBindEnv()
-	{
-		SQInteger boundtarget;
-		Lex();
-		Expression();
-		boundtarget = _fs->TopTarget();
-		Expect(_SC(']'));
-		return boundtarget;
-	}
+    SQInteger ParseBindEnv()
+    {
+        SQInteger boundtarget;
+        Lex();
+        Expression();
+        boundtarget = _fs->TopTarget();
+        Expect(_SC(']'));
+        return boundtarget;
+    }
     void FunctionExp(bool lambda = false)
     {
         Lex(); 
-		SQInteger boundtarget = 0xFF;
-		if (_token == _SC('[')) {
-			boundtarget = ParseBindEnv();
-		}
-		Expect(_SC('('));
+        SQInteger boundtarget = 0xFF;
+        if (_token == _SC('[')) {
+            boundtarget = ParseBindEnv();
+        }
+        Expect(_SC('('));
         SQObjectPtr dummy;
         CreateFunction(dummy, boundtarget, lambda);
         _fs->AddInstruction(_OP_CLOSURE, _fs->PushTarget(), _fs->_functions.size() - 1, boundtarget);
@@ -1564,9 +1578,9 @@ public:
             }
         }
         Expect(_SC(')'));
-		if (boundtarget != 0xFF) {
-			_fs->PopTarget();
-		}
+        if (boundtarget != 0xFF) {
+            _fs->PopTarget();
+        }
         for(SQInteger n = 0; n < defparams; n++) {
             _fs->PopTarget();
         }
