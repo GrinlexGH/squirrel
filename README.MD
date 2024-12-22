@@ -10,10 +10,10 @@ Uses C++ 17
 
 ### TODO
 
-- [ ] `import` folder.subfolder.module
-- [ ] `import` folder.subfolder (import all files in folder)
-- [ ] `from` folder.subfolder.module `import` symbol
-- [ ] `from` folder.subfolder `import` module
+- [ ] `import` "folder/subfolder/module"
+- [ ] `import` "folder/subfolder" (import all files in folder)
+- [ ] `from` "folder/subfolder/module" `import` symbol
+- [ ] `from` "folder/subfolder" `import` "module"
 - [ ] `import` `as`
 - [ ] stack dump from script
 - [x] Module destruction
