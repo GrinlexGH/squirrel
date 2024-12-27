@@ -10,7 +10,6 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/.output/$<CONFIG>")
 
 add_library(json SHARED
     json.cpp
-	simdjson.cpp
 )
 
 # Put here your installed squirrel library
