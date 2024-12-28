@@ -2,6 +2,8 @@
 #ifndef _SQSTRING_H_
 #define _SQSTRING_H_
 
+#include "sqobject.h"
+
 inline SQHash _hashstr (const SQChar *s, size_t l)
 {
 	SQHash h = (SQHash)l;  /* seed */

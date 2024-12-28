@@ -1,16 +1,17 @@
-#include <kalibri.hpp>
-#include <sqvm.h>
+#include "sqimport.h"
 
+#include <kalibri/kbmodule.hpp>
 #include <filesystem>
+#include <cassert>
 
-using SQModuleLoad_t = SQRESULT(*)(HSQUIRRELVM, HSQAPI);
+#include "sqstring.h"
+#include "sqvm.h"
 
 static HSQAPI sqapi = NULL;
 
 // Create and populate the HSQAPI structure with function pointers
 // If new functions are added to the Squirrel API, they should be added here too
-static HSQAPI kb_newapi()
-{
+static HSQAPI kb_newapi() {
     HSQAPI sq = (HSQAPI)sq_malloc(sizeof(sq_api));
 
     /*vm*/
@@ -188,27 +189,7 @@ static HSQAPI kb_newapi()
 
 #include <string>
 
-static std::string narrow(const std::wstring_view wstr)
-{
-    if (wstr.empty()) {
-        return {};
-    }
-
-    int len = ::WideCharToMultiByte(
-        CP_UTF8, 0, &wstr[0], (int)wstr.size(),
-        nullptr, 0, nullptr, nullptr
-    );
-    std::string out(len, 0);
-    ::WideCharToMultiByte(
-        CP_UTF8, 0, &wstr[0], (int)wstr.size(),
-        &out[0], len, nullptr, nullptr
-    );
-
-    return out;
-}
-
-static std::wstring widen(const std::string_view str)
-{
+static std::wstring widen(const std::string_view str) {
     if (str.empty()) {
         return {};
     }
@@ -220,8 +201,7 @@ static std::wstring widen(const std::string_view str)
     return out;
 }
 
-static void* LoadLib(const std::string& name)
-{
+static void* LoadLib(const std::string& name) {
     void* ret = LoadLibraryExW(
         widen(name + ".dll").c_str(),
         nullptr,
@@ -241,8 +221,7 @@ static void* LoadLib(const std::string& name)
     );
 }
 
-static void* GetFunc(void* handle, const char* funcName)
-{
+static void* GetFunc(void* handle, const char* funcName) {
     return (void*)GetProcAddress((HMODULE)handle, funcName);
 }
 
@@ -253,8 +232,7 @@ static void* GetFunc(void* handle, const char* funcName)
 #include <unistd.h>
 #include <linux/limits.h>
 
-static void* LoadLib(const std::string& name)
-{
+static void* LoadLib(const std::string& name) {
     std::filesystem::path libPath = name;
     std::string libName = "./lib" + libPath.filename().string() + ".so";
     libPath.remove_filename();
@@ -263,19 +241,199 @@ static void* LoadLib(const std::string& name)
     return dlopen(libPath.c_str(), RTLD_NOW);
 }
 
-static void* GetFunc(void* handle, const char* funcName)
-{
+static void* GetFunc(void* handle, const char* funcName) {
     return dlsym(handle, funcName);
 }
 
 #endif
 
-static SQRESULT kb_importscript(HSQUIRRELVM v, const SQChar* moduleName)
-{
+#ifdef SQUNICODE
+#define scfopen(x, y) _wfopen(widen(x).c_str(), widen(y).c_str())
+#else
+#define scfopen fopen
+#endif
+
+#define IO_BUFFER_SIZE 2048
+struct IOBuffer {
+    unsigned char buffer[IO_BUFFER_SIZE];
+    SQInteger size;
+    SQInteger ptr;
+    FILE* file;
+};
+
+static SQInteger _read_byte(IOBuffer* iobuffer) {
+    if (iobuffer->ptr < iobuffer->size) {
+        SQInteger ret = iobuffer->buffer[iobuffer->ptr];
+        iobuffer->ptr++;
+        return ret;
+    } else if ((iobuffer->size = fread(iobuffer->buffer, 1, IO_BUFFER_SIZE, iobuffer->file)) > 0) {
+        SQInteger ret = iobuffer->buffer[0];
+        iobuffer->ptr = 1;
+        return ret;
+    }
+
+    return 0;
+}
+
+static SQInteger _read_two_bytes(IOBuffer* iobuffer) {
+    if (iobuffer->ptr < iobuffer->size) {
+        if (iobuffer->size < 2) return 0;
+        SQInteger ret = *((const uint16_t*)&iobuffer->buffer[iobuffer->ptr]);
+        iobuffer->ptr += 2;
+        return ret;
+    } else {
+        if ((iobuffer->size = fread(iobuffer->buffer, 1, IO_BUFFER_SIZE, iobuffer->file)) > 0) {
+            if (iobuffer->size < 2) return 0;
+            SQInteger ret = *((const uint16_t*)&iobuffer->buffer[0]);
+            iobuffer->ptr = 2;
+            return ret;
+        }
+    }
+
+    return 0;
+}
+
+static SQInteger file_read(SQUserPointer file, SQUserPointer buf, SQInteger size) {
+    if (SQInteger ret = fread(buf, 1, size, (FILE*)file); ret != 0)
+        return ret;
+    return -1;
+}
+
+static SQInteger _io_file_lexfeed_UTF8(SQUserPointer iobuf) {
+    IOBuffer* iobuffer = (IOBuffer*)iobuf;
+#define READ(iobuf) \
+    if((inchar = (unsigned char)_read_byte(iobuf)) == 0) \
+        return 0;
+
+    static const SQInteger utf8_lengths[16] =
+    {
+        1,1,1,1,1,1,1,1,        /* 0000 to 0111 : 1 byte (plain ASCII) */
+        0,0,0,0,                /* 1000 to 1011 : not valid */
+        2,2,                    /* 1100, 1101 : 2 bytes */
+        3,                      /* 1110 : 3 bytes */
+        4                       /* 1111 :4 bytes */
+    };
+    static const unsigned char byte_masks[5] = { 0,0,0x1f,0x0f,0x07 };
+    unsigned char inchar;
+    SQInteger c = 0;
+    READ(iobuffer);
+    c = inchar;
+    //
+    if (c >= 0x80) {
+        SQInteger tmp;
+        SQInteger codelen = utf8_lengths[c >> 4];
+        if (codelen == 0)
+            return 0;
+        //"invalid UTF-8 stream";
+        tmp = c & byte_masks[codelen];
+        for (SQInteger n = 0; n < codelen - 1; n++) {
+            tmp <<= 6;
+            READ(iobuffer);
+            tmp |= inchar & 0x3F;
+        }
+        c = tmp;
+    }
+    return c;
+}
+
+static SQInteger _io_file_lexfeed_UCS2_LE(SQUserPointer iobuf) {
+    SQInteger low;
+    IOBuffer* iobuffer = (IOBuffer*)iobuf;
+    low = _read_two_bytes(iobuffer);
+    if (low == 0) return 0;
+    if (low < 0xD800 || low > 0xDFFF) {
+        return low;
+    }
+
+    SQInteger high = _read_two_bytes(iobuffer);
+    if (high >= 0xDC00 && high <= 0xDFFF) {
+        return ((low - 0xD800) << 10) + (high - 0xDC00) + 0x10000;
+    }
+
+    return 0;
+}
+
+static SQInteger _io_file_lexfeed_UCS2_BE(SQUserPointer iobuf) {
+    IOBuffer* iobuffer = (IOBuffer*)iobuf;
+    SQInteger raw = _read_two_bytes(iobuffer);
+    if (raw == 0) return 0;
+
+    // BE to LE
+    SQInteger value = ((raw >> 8) & 0xFF) | ((raw & 0xFF) << 8);
+
+    if (value < 0xD800 || value > 0xDFFF) {
+        return value;
+    }
+
+    raw = _read_two_bytes(iobuffer);
+    // BE to LE
+    raw = ((raw >> 8) & 0xFF) | ((raw & 0xFF) << 8);
+    if (raw >= 0xDC00 && raw <= 0xDFFF) {
+        return ((value - 0xD800) << 10) + (raw - 0xDC00) + 0x10000;
+    }
+
+    return 0;
+}
+
+static SQRESULT loadfile(HSQUIRRELVM v, const SQChar* filename, SQBool printerror) {
+    FILE* file = scfopen(filename, _SC("rb"));
+
+    unsigned short us;
+    unsigned char uc;
+    SQLEXREADFUNC func = _io_file_lexfeed_UTF8; // assume file encoding in UTF-8
+    if (file) {
+        SQInteger ret = fread(&us, 1, 2, file);
+        if (ret != 2) {
+            //probably an empty file
+            us = 0;
+        }
+        if (us == SQ_BYTECODE_STREAM_TAG) { //BYTECODE
+            fseek(file, 0, SEEK_SET);
+            if (SQ_SUCCEEDED(sq_readclosure(v, file_read, file))) {
+                fclose(file);
+                return SQ_OK;
+            }
+        }
+        else { //SCRIPT
+
+            switch (us)
+            {
+                //gotta swap the next 2 lines on BIG endian machines
+            case 0xFFFE: func = _io_file_lexfeed_UCS2_BE; break;//UTF-16 little endian;
+            case 0xFEFF: func = _io_file_lexfeed_UCS2_LE; break;//UTF-16 big endian;
+            case 0xBBEF:
+                if (fread(&uc, 1, sizeof(uc), file) == 0) {
+                    fclose(file);
+                    return sq_throwerror(v, _SC("io error"));
+                }
+                if (uc != 0xBF) {
+                    fclose(file);
+                    return sq_throwerror(v, _SC("Unrecognized encoding"));
+                }
+                func = _io_file_lexfeed_UTF8;
+                break;//UTF-8 ;
+            default: fseek(file, 0, SEEK_SET); break; // ascii or utf8
+            }
+            IOBuffer buffer;
+            buffer.ptr = 0;
+            buffer.size = 0;
+            buffer.file = file;
+            if (SQ_SUCCEEDED(sq_compile(v, func, &buffer, filename, printerror))) {
+                fclose(file);
+                return SQ_OK;
+            }
+        }
+        fclose(file);
+        return SQ_ERROR;
+    }
+    return sq_throwerror(v, _SC("cannot open the file"));
+}
+
+static SQRESULT importscript(HSQUIRRELVM v, const SQChar* moduleName) {
     std::string filename(moduleName);
     filename += _SC(".nut");
-    if (SQ_FAILED(sqstd_loadfile(v, moduleName, true))) {
-        if (SQ_FAILED(sqstd_loadfile(v, filename.c_str(), true))) {
+    if (SQ_FAILED(loadfile(v, moduleName, true))) {
+        if (SQ_FAILED(loadfile(v, filename.c_str(), true))) {
             return SQ_ERROR;
         }
     }
@@ -284,83 +442,45 @@ static SQRESULT kb_importscript(HSQUIRRELVM v, const SQChar* moduleName)
     return SQ_OK;
 }
 
-static SQRESULT kb_importlib(HSQUIRRELVM v, const SQChar* moduleName)
-{
+static SQRESULT importlib(HSQUIRRELVM v, const SQChar* moduleName, kb::Table& retTable) {
     void* externalLibrary = LoadLib(moduleName);
     if (!externalLibrary) {
         return SQ_ERROR;
     }
 
-    SQModuleLoad_t moduleLoader = (SQModuleLoad_t)GetFunc(externalLibrary, "sqmodule_load");
+    auto moduleLoader = reinterpret_cast<SQModuleLoad_t>(GetFunc(externalLibrary, "sqmodule_load"));
     if (!moduleLoader) {
         return SQ_ERROR;
     }
 
-    SQModuleDestructor_t moduleDestructor = (SQModuleDestructor_t)GetFunc(externalLibrary, "sqmodule_destruct");
-    if (moduleDestructor) {
-        v->_kalibriModuleDestructors.push_back(moduleDestructor);
+    if (auto moduleDestructor = reinterpret_cast<SQModuleDestruct_t>(GetFunc(externalLibrary, "sqmodule_destruct")); moduleDestructor) {
+        v->_module_destructors.push_back(moduleDestructor);
     }
 
     if (sqapi == nullptr) {
         sqapi = kb_newapi(); // Caching this for multiple imports is probably a very good idea
     }
 
-    if (SQ_FAILED(moduleLoader(v, sqapi)))
+    if (SQ_FAILED(moduleLoader(v, sqapi, retTable)))
         return SQ_ERROR;
 
     return SQ_OK;
 }
 
-SQInteger kb_import(HSQUIRRELVM v)
-{
+#ifdef GetObject
+#undef GetObject
+#endif
+
+void SQVM::ImportModule(const SQObjectPtr& modulepath, SQObjectPtr retTable) {
     SQRESULT ret = SQ_OK;
 
-    switch (sq_gettop(v)) {
-    case 2:
-        sq_pushroottable(v);
-        break;
-    case 3:
-        // Table passed into second parameter
-        break;
-    default:
-        break;
+    kb::Table table(retTable, this);
+
+    if (SQ_FAILED(importscript(this, modulepath._unVal.pString->_val))) {
+        if (SQ_FAILED(importlib(this, modulepath._unVal.pString->_val, table))) {
+            Raise_Error("Cannot import library!");
+        }
     }
 
-    const SQChar* moduleName;
-    sq_getstring(v, -2, &moduleName);
-
-    HSQOBJECT table;
-    sq_getstackobj(v, -1, &table);
-    sq_addref(v, &table);
-
-    sq_settop(v, 0);            // Clear Stack
-    sq_pushobject(v, table);    // Push the target table onto the stack
-
-    if (SQ_FAILED(kb_importscript(v, moduleName))) {
-        ret = kb_importlib(v, moduleName);
-    }
-
-    if (SQ_FAILED(ret)) {
-        return sq_throwerror(v, "Cannot import library!");
-    }
-
-    sq_settop(v, 0);            // Clean up the stack (just in case the module load leaves it messy)
-    sq_pushobject(v, table);    // return the target table
-    sq_release(v, &table);
-
-    return 1;
-}
-
-SQRESULT kb_register_import(HSQUIRRELVM v)
-{
-    sq_pushroottable(v);
-
-    sq_pushstring(v, "import", -1);
-    sq_newclosure(v, &kb_import, 0);
-    sq_setparamscheck(v, -2, ".s");
-    sq_newslot(v, -3, SQFalse);
-
-    sq_pop(v, 1);
-
-    return SQ_OK;
+    Pop();
 }

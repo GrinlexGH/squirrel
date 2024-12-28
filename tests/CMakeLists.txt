@@ -53,7 +53,7 @@ if(NOT CMKR_VS_STARTUP_PROJECT)
     set_property(DIRECTORY ${PROJECT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT tests)
 endif()
 
-target_link_libraries(tests PRIVATE GTest::gtest squirrel::kalibri)
+target_link_libraries(tests PRIVATE GTest::gtest squirrel::squirrel squirrel::sqstdlib)
 ##########
 
 # Copy script folder

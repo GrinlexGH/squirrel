@@ -18,7 +18,7 @@ set(CMAKE_PREFIX_PATH ${PROJECT_SOURCE_DIR}/libs)
 find_package(squirrel REQUIRED)
 
 target_link_libraries(winsock2 PRIVATE
-    squirrel::kalibri
+    squirrel::squirrel
     ws2_32
 )
 

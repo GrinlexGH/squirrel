@@ -15,7 +15,7 @@ public:
     }
 };
 
-SQRESULT sqmodule_load(HSQUIRRELVM vm, HSQAPI api) {
+SQRESULT sqmodule_load(HSQUIRRELVM vm, HSQAPI api, kb::Table& RetTable) {
     kb::DefaultVM::Set(vm);
 
     int iResult = WSAStartup(MAKEWORD(2, 2), &g_Wsadata);
@@ -24,9 +24,9 @@ SQRESULT sqmodule_load(HSQUIRRELVM vm, HSQAPI api) {
         return 1;
     }
 
-    kb::ConstTable().Const("AF_UNSPEC", AF_UNSPEC);
-    kb::ConstTable().Const("AF_INET", AF_INET);
-    kb::ConstTable().Const("AF_INET6", AF_INET6);
+    RetTable.SetValue("AF_UNSPEC", (int)AF_UNSPEC);
+    RetTable.SetValue("AF_INET", (int)AF_INET);
+    RetTable.SetValue("AF_INET6", (int)AF_INET6);
 
     kb::Class<CSocket> socket(vm, "socket");
     socket
@@ -35,7 +35,7 @@ SQRESULT sqmodule_load(HSQUIRRELVM vm, HSQAPI api) {
     .Ctor<int, int>()
     ;
 
-    kb::RootTable().Bind("socket", socket);
+    RetTable.Bind("socket", socket);
 
     return SQ_OK;
 }

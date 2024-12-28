@@ -6,11 +6,11 @@ typedef SQUnsignedInteger LexChar;
 
 struct SQLexer
 {
-    SQLexer();
+    SQLexer() = default;
     ~SQLexer();
     void Init(SQSharedState *ss,SQLEXREADFUNC rg,SQUserPointer up,CompilerErrorFunc efunc,void *ed);
     void Error(const SQChar *err);
-    SQInteger Lex();
+    SQInteger Lex(bool stringVerbatim = false);
     const SQChar *Tok2Str(SQInteger tok);
 private:
     SQInteger GetIDType(const SQChar *s,SQInteger len);

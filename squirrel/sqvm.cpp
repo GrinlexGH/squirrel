@@ -13,6 +13,8 @@
 #include "squserdata.h"
 #include "sqarray.h"
 #include "sqclass.h"
+#include <string>
+#include "sqimport.h"
 
 #define TOP() (_stack._vals[_top-1])
 #define TARGET _stack._vals[_stackbase+arg0]
@@ -147,10 +149,8 @@ void SQVM::Finalize()
 
 SQVM::~SQVM()
 {
-    for (SQModuleDestructor_t& destructor : _kalibriModuleDestructors)
-    {
-        if (destructor)
-        {
+    for (SQModuleDestruct_t& destructor : _module_destructors) {
+        if (destructor) {
             destructor(this);
         }
     }
@@ -743,7 +743,6 @@ bool SQVM::Execute(SQObjectPtr &closure, SQInteger nargs, SQInteger stackbase,SQ
     }
 
 exception_restore:
-    // INSTRUCTION EXECUTE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     {
         for(;;)
         {
@@ -1100,7 +1099,16 @@ exception_restore:
                 if(_openouters) CloseOuters(&(STK(arg1)));
                 continue;
             case _OP_IMPORT: {
-                SQObjectPtr path = ci->_literals[arg1];
+                SQObjectPtr table;
+                if (arg2) { // isImportToTable
+                    table = SQTable::Create(_ss(this), 0);
+                } else {
+                    table = _roottable;
+                }
+                Push(table);
+                ImportModule(ci->_literals[arg1], table);
+                TARGET = table;
+                Pop();
             }
                 continue;
             }
@@ -1530,9 +1538,6 @@ bool SQVM::NewSlot(const SQObjectPtr &self,const SQObjectPtr &key,const SQObject
                     }
                     rawcall = false;
                 }
-                else {
-                    rawcall = true;
-                }
             }
         }
         if(rawcall) _table(self)->NewSlot(key,val); //cannot fail
@@ -1643,12 +1648,6 @@ SQInteger prevstackbase = _stackbase;
         Raise_Error(_SC("attempt to call '%s'"), GetTypeName(closure));
         return false;
     }
-#ifdef _DEBUG
-    if(!_suspended) {
-        assert(_stackbase == prevstackbase);
-    }
-#endif
-    return true;
 }
 
 bool SQVM::CallMetaMethod(SQObjectPtr &closure,SQMetaMethod SQ_UNUSED_ARG(mm),SQInteger nparams,SQObjectPtr &outres)
@@ -1821,6 +1820,6 @@ void SQVM::dumpstack(SQInteger stackbase,bool dumpall)
     }
 }
 
-
-
 #endif
+
+

@@ -95,10 +95,9 @@ public:
         va_end(vl);
         longjmp(_errorjmp,1);
     }
-    void Lex(){ _token = _lex.Lex();}
+    void Lex(bool stringVerbatim = false) { _token = _lex.Lex(stringVerbatim); }
     SQObject Expect(SQInteger tok)
     {
-
         if(_token != tok) {
             if(_token == TK_CONSTRUCTOR && tok == TK_IDENTIFIER) {
                 //do nothing
@@ -317,16 +316,25 @@ public:
         }
         _fs->SnoozeOpt();
     }
-
     void ImportStatement()
     {
-        Lex();
-        Expect(TK_STRING_LITERAL);
+        Lex(true);
+        SQObjectPtr modulePath = Expect(TK_STRING_LITERAL);
+        bool isImportToTable = false;
+        if (_token == TK_AS) {
+            Lex();
+            Factor();
+            isImportToTable = true;
+        }
         _fs->AddInstruction(
             _OP_IMPORT,
             _fs->PushTarget(),
-            _fs->GetConstant(_fs->CreateString(_lex._svalue, _lex._longstr.size() - 1))
+            _fs->GetConstant(modulePath),
+            isImportToTable
         );
+        if (isImportToTable) {
+            EmitDerefOp(_OP_NEWSLOT);
+        }
         Lex();
     }
     void EmitDerefOp(SQOpcode op)

@@ -10,13 +10,14 @@ Uses C++ 17
 
 ### TODO
 
-- [ ] `import` "folder/subfolder/module"
+- [x] `import` "folder/subfolder/module"
 - [ ] `import` "folder/subfolder" (import all files in folder)
 - [ ] `from` "folder/subfolder/module" `import` symbol
-- [ ] `from` "folder/subfolder" `import` "module"
-- [ ] `import` `as`
+- [x] `import` `as` for scripts
+- [x] `import` `as` for .dlls
 - [ ] stack dump from script
-- [x] Module destruction
-- [ ] Write some sample libraries
+- [x] module destruction
+- [ ] write some sample libraries
 - [ ] export only specific table from `.nut` script module by global `return` operator
 - [ ] export whole file root table if there is no global `return`
+- [ ] handle recursive import

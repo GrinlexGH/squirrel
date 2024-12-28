@@ -30,8 +30,8 @@ void PrintVersionInfos();
 #include <windows.h>
 
 void initconsole() {
-    ::SetConsoleCP(CP_UTF8);
-    ::SetConsoleOutputCP(CP_UTF8);
+    SetConsoleCP(CP_UTF8);
+    SetConsoleOutputCP(CP_UTF8);
 }
 
 #else
@@ -312,7 +312,6 @@ int main(int argc, char* argv[])
     sqstd_register_systemlib(v);
     sqstd_register_mathlib(v);
     sqstd_register_stringlib(v);
-    kb_register_import(v);
 
     //aux library
     //sets error handlers

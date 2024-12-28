@@ -4,6 +4,7 @@
 
 #include "sqopcodes.h"
 #include "sqobject.h"
+#include "sqimport.h"
 #include <vector>
 #define MAX_NATIVE_CALLS 100
 #define MIN_STACK_OVERHEAD 15
@@ -31,8 +32,6 @@ struct SQExceptionTrap{
 #define _INLINE
 
 typedef sqvector<SQExceptionTrap> ExceptionsTraps;
-
-using SQModuleDestructor_t = void(*)(HSQUIRRELVM);
 
 struct SQVM : public CHAINABLE_OBJ
 {
@@ -131,6 +130,7 @@ public:
     bool EnterFrame(SQInteger newbase, SQInteger newtop, bool tailcall);
     void LeaveFrame();
     void Release(){ sq_delete(this,SQVM); }
+    void ImportModule(const SQObjectPtr& modulepath, SQObjectPtr retTable);
 ////////////////////////////////////////////////////////////////////////////
     //stack functions for the api
     void Remove(SQInteger n);
@@ -181,7 +181,7 @@ public:
     SQInteger _suspended_target;
     SQInteger _suspended_traps;
 
-    std::vector<SQModuleDestructor_t> _kalibriModuleDestructors;
+    std::vector<SQModuleDestruct_t> _module_destructors;
 };
 
 struct AutoDec{

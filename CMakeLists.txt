@@ -56,7 +56,6 @@ add_subdirectory(sqstdlib)
 if(NOT SQ_DISABLE_INTERPRETER)
   add_subdirectory(sq)
 endif()
-add_subdirectory(kalibri)
 
 if(BUILD_KALIBRI_TESTS)
   set(BUILD_GMOCK OFF CACHE BOOL "Builds the googlemock subproject" FORCE)
@@ -87,7 +86,7 @@ if(CMAKE_SIZEOF_VOID_P EQUAL 8)
 endif()
 
 if(NOT DISABLE_DYNAMIC)
-  set_target_properties(squirrel sqstdlib kalibri PROPERTIES SOVERSION 0 VERSION 0.0.0)
+  set_target_properties(squirrel sqstdlib PROPERTIES SOVERSION 0 VERSION 0.0.0)
 endif()
 
 if(NOT SQ_DISABLE_INSTALLER AND NOT SQ_DISABLE_HEADER_INSTALLER)

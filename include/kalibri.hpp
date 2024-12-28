@@ -10,7 +10,5 @@
 #include "kalibri/kbscript.hpp"
 #include "kalibri/kbarray.hpp"
 
-SQRESULT kb_register_import(HSQUIRRELVM vm);
-
-extern "C" KALIBRI_API SQRESULT sqmodule_load(HSQUIRRELVM vm, HSQAPI api);
+extern "C" KALIBRI_API SQRESULT sqmodule_load(HSQUIRRELVM vm, HSQAPI api, kb::Table& RetTable);
 extern "C" KALIBRI_API void sqmodule_destruct(HSQUIRRELVM vm); // Unnecessary destructor

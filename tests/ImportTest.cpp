@@ -31,11 +31,9 @@ using namespace kb;
 TEST_F(KalibriTest, ImportScript) {
     DefaultVM::Set(vm);
 
-    kb_register_import(vm);
-
     Script script;
     script.CompileString(_SC(" \
-        ::import(\"scripts/samplemodule\"); \
+        import \"scripts/samplemodule\"; \
         \
         gTest.EXPECT_FLOAT_EQ(3.1415, ::PI); \
         gTest.EXPECT_INT_EQ(10, ::RectArea(2, 5)); \
@@ -54,11 +52,9 @@ TEST_F(KalibriTest, ImportScript) {
 TEST_F(KalibriTest, ImportScriptIntoTable) {
     DefaultVM::Set(vm);
 
-    kb_register_import(vm);
-
     Script script;
     script.CompileString(_SC(" \
-        mod <- ::import(\"scripts/samplemodule\", {}); \
+        import \"scripts/samplemodule\" as mod; \
         \
         gTest.EXPECT_FLOAT_EQ(3.1415, mod.PI); \
         gTest.EXPECT_INT_EQ(10, mod.RectArea(2, 5)); \
