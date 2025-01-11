@@ -69,7 +69,8 @@ public:
     Employee(const Employee& e) :
         firstName(e.firstName), lastName(e.lastName),
         age(e.age), department(e.department),
-        wage(e.wage), supervisor(e.supervisor) {
+        wage(e.wage), supervisor(e.supervisor),
+        gender(e.gender), middleName(e.middleName) {
 
     }
 
@@ -77,7 +78,7 @@ public:
         wage += (wage * percent);
     }
 
-    const string ToString() const {
+    string ToString() const {
         std::basic_stringstream<SQChar> out;
         out << _SC("Employee: ") << lastName << _SC(", ") << firstName << _SC("\n");
         out << _SC("Age: ") << age << _SC("\n");

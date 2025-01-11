@@ -29,7 +29,7 @@
 
 using namespace kb;
 
-const kb::string GetGreeting()
+kb::string GetGreeting()
 {
     return _SC("Hello world!");
 }
