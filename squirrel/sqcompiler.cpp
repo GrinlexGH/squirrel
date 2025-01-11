@@ -335,7 +335,6 @@ public:
         if (isImportToTable) {
             EmitDerefOp(_OP_NEWSLOT);
         }
-        Lex();
     }
     void EmitDerefOp(SQOpcode op)
     {

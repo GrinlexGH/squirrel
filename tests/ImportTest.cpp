@@ -33,7 +33,7 @@ TEST_F(KalibriTest, ImportScript) {
 
     Script script;
     script.CompileString(_SC(" \
-        import \"scripts/samplemodule\"; \
+        import \"scripts/samplemodule\"\n \
         \
         gTest.EXPECT_FLOAT_EQ(3.1415, ::PI); \
         gTest.EXPECT_INT_EQ(10, ::RectArea(2, 5)); \
