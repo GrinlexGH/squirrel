@@ -1106,7 +1106,10 @@ exception_restore:
                     table = _roottable;
                 }
                 Push(table);
-                ImportModule(ci->_literals[arg1], table);
+                if (!ImportModule(ci->_literals[arg1], table)) {
+                    Raise_Error("Cannot import library!");
+                    SQ_THROW();
+                }
                 TARGET = table;
                 Pop();
             }

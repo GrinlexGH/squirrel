@@ -508,14 +508,15 @@ SQRESULT ImportLib(const HSQUIRRELVM v, const SQChar* moduleName, kb::Table& ret
 
 }
 
-void SQVM::ImportModule(const SQObjectPtr& modulePath, const SQObjectPtr& retTable) {
+bool SQVM::ImportModule(const SQObjectPtr& modulePath, const SQObjectPtr& retTable) {
     kb::Table table(retTable, this);
 
     if (SQ_FAILED(ImportScript(this, modulePath._unVal.pString->_val))) {
         if (SQ_FAILED(ImportLib(this, modulePath._unVal.pString->_val, table))) {
-            Raise_Error("Cannot import library!");
+            return false;
         }
     }
 
     Pop();
+    return true;
 }
