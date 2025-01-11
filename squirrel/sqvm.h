@@ -130,7 +130,7 @@ public:
     bool EnterFrame(SQInteger newbase, SQInteger newtop, bool tailcall);
     void LeaveFrame();
     void Release(){ sq_delete(this,SQVM); }
-    void ImportModule(const SQObjectPtr& modulepath, SQObjectPtr retTable);
+    void ImportModule(const SQObjectPtr& modulePath, const SQObjectPtr& retTable);
 ////////////////////////////////////////////////////////////////////////////
     //stack functions for the api
     void Remove(SQInteger n);
