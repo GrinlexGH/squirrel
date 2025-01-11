@@ -10,10 +10,8 @@
 #include "sqclosure.h"
 #include "sqstring.h"
 #include "sqtable.h"
-#include "squserdata.h"
 #include "sqarray.h"
 #include "sqclass.h"
-#include <string>
 #include "sqimport.h"
 
 #define TOP() (_stack._vals[_top-1])
@@ -1107,7 +1105,6 @@ exception_restore:
                 }
                 Push(table);
                 if (!ImportModule(ci->_literals[arg1], table)) {
-                    Raise_Error("Cannot import library!");
                     SQ_THROW();
                 }
                 TARGET = table;

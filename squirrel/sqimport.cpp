@@ -442,11 +442,11 @@ SQRESULT loadfile(HSQUIRRELVM v, const SQChar* filename, SQBool printerror) {
                 case 0xBBEF: // UTF-8
                     if (fread(&uc, 1, sizeof(uc), file) == 0) {
                         fclose(file);
-                        return sq_throwerror(v, _SC("io error"));
+                        return SQ_ERROR;
                     }
                     if (uc != 0xBF) {
                         fclose(file);
-                        return sq_throwerror(v, _SC("Unrecognized encoding"));
+                        return SQ_ERROR;
                     }
                     func = _io_file_lexfeed_UTF8;
                     break;
@@ -464,7 +464,7 @@ SQRESULT loadfile(HSQUIRRELVM v, const SQChar* filename, SQBool printerror) {
         fclose(file);
         return SQ_ERROR;
     }
-    return sq_throwerror(v, _SC("cannot open the file"));
+    return SQ_ERROR;
 }
 
 SQRESULT ImportScript(const HSQUIRRELVM v, const SQChar* moduleName) {
@@ -483,12 +483,16 @@ SQRESULT ImportScript(const HSQUIRRELVM v, const SQChar* moduleName) {
 SQRESULT ImportLib(const HSQUIRRELVM v, const SQChar* moduleName, kb::Table& retTable) {
     void* externalLibrary = LoadLib(moduleName);
     if (!externalLibrary) {
-        return SQ_ERROR;
+        std::ostringstream err;
+        err << "Cannot import module \"" << moduleName <<"\".";
+        return sq_throwerror(v, err.str().c_str());
     }
 
     const auto moduleLoader = reinterpret_cast<SQModuleLoad_t>(GetFunc(externalLibrary, "sqmodule_load"));
     if (!moduleLoader) {
-        return SQ_ERROR;
+        std::ostringstream err;
+        err << "Cannot get loader for module \"" << moduleName << "\".";
+        return sq_throwerror(v, err.str().c_str());
     }
 
     if (const auto moduleDestructor = reinterpret_cast<SQModuleDestruct_t>(GetFunc(externalLibrary, "sqmodule_destruct")); moduleDestructor) {
@@ -500,7 +504,15 @@ SQRESULT ImportLib(const HSQUIRRELVM v, const SQChar* moduleName, kb::Table& ret
     }
 
     if (SQ_FAILED(moduleLoader(v, sqapi, retTable))) {
-        return SQ_ERROR;
+        sq_getlasterror(v);
+        const char* lastError = nullptr;
+        sq_getstring(v, -1, &lastError);
+
+        std::ostringstream err;
+        err << "Loader for module \"" << moduleName << "\" failed with "
+            << (lastError ? "message: " + std::string(lastError) : "unknown error.");
+
+        return sq_throwerror(v, err.str().c_str());
     }
 
     return SQ_OK;
