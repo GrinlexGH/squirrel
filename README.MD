@@ -25,3 +25,5 @@ Uses C++ 17
 - [x] (?) export whole file root table if there is no global `return`
 - [x] handle recursive import
 - [ ] manual module deload like `deimport` or something like that
+
+(?) - I'm not sure if it's worth adding this
