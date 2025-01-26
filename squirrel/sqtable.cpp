@@ -219,3 +219,16 @@ void SQTable::Clear()
     _usednodes = 0;
     Rehash(true);
 }
+
+void SQTable::Merge(SQTable *table) {
+    if (this == table) {
+        return;
+    }
+
+    for (SQInteger i = 0; i < table->_numofnodes; ++i) {
+        _HashNode &node = table->_nodes[i];
+        if (sq_type(node.key) != OT_NULL) {
+            NewSlot(node.key, node.val);
+        }
+    }
+}

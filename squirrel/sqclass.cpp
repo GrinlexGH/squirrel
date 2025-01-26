@@ -25,8 +25,10 @@ SQClass::SQClass(SQSharedState *ss,SQClass *base)
         _methods.copy(base->_methods);
         _COPY_VECTOR(_metamethods,base->_metamethods,MT_LAST);
         __ObjAddRef(_base);
+        _members = _base->_members->Clone();
+    } else {
+        _members = SQTable::Create(ss,0);
     }
-    _members = base?base->_members->Clone() : SQTable::Create(ss,0);
     __ObjAddRef(_members);
 
     INIT_CHAIN();
@@ -47,7 +49,7 @@ void SQClass::Finalize() {
 SQClass::~SQClass()
 {
     REMOVE_FROM_CHAIN(&_sharedstate->_gc_chain, this);
-    Finalize();
+    SQClass::Finalize();
 }
 
 bool SQClass::NewSlot(SQSharedState *ss,const SQObjectPtr &key,const SQObjectPtr &val,bool bstatic)

@@ -20,7 +20,8 @@ Uses C++ 17
 - [ ] stack dump from script
 - [x] module destruction
 - [ ] write some sample libraries
-- [ ] export only specific table from `.nut` script module by global `return` operator
-- [x] export whole file root table if there is no global `return`
-- [ ] handle recursive import
+- [ ] write tests for dll importing
+- [ ] (?) export only specific table from `.nut` script module by global `return` operator 
+- [x] (?) export whole file root table if there is no global `return`
+- [x] handle recursive import
 - [ ] manual module deload like `deimport` or something like that

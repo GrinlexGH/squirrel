@@ -6,7 +6,7 @@
 #include <ws2tcpip.h>
 #include <iphlpapi.h>
 
-WSADATA g_Wsadata {};
+WSADATA g_WSAData {};
 
 class CSocket {
 public:
@@ -15,18 +15,25 @@ public:
     }
 };
 
-SQRESULT sqmodule_load(HSQUIRRELVM vm, HSQAPI api, kb::Table& RetTable) {
+SQRESULT sqmodule_load(HSQUIRRELVM vm, kb::Table& BindingTable) {
     kb::DefaultVM::Set(vm);
 
-    int iResult = WSAStartup(MAKEWORD(2, 2), &g_Wsadata);
+    int iResult = WSAStartup(MAKEWORD(2, 2), &g_WSAData);
     if (iResult != 0) {
-        printf("WSAStartup failed: %d\n", iResult);
-        return 1;
+        std::ostringstream err;
+        err << "WSAStartup failed: " << iResult << '.';
+        return sq_throwerror(vm, err.str().c_str());
     }
 
-    RetTable.SetValue("AF_UNSPEC", (int)AF_UNSPEC);
-    RetTable.SetValue("AF_INET", (int)AF_INET);
-    RetTable.SetValue("AF_INET6", (int)AF_INET6);
+    kb::ConstTable().Const("AF_UNSPEC", static_cast<int>(AF_UNSPEC));
+    kb::ConstTable().Const("AF_INET", AF_INET);
+    kb::ConstTable().Const("AF_INET6", AF_INET6);
+
+    kb::ConstTable().Const("SOCK_STREAM", SOCK_STREAM);
+    kb::ConstTable().Const("SOCK_DGRAM", SOCK_DGRAM);
+    kb::ConstTable().Const("SOCK_RAW", SOCK_RAW);
+    kb::ConstTable().Const("SOCK_RDM", SOCK_RDM);
+    kb::ConstTable().Const("SOCK_SEQPACKET", SOCK_SEQPACKET);
 
     kb::Class<CSocket> socket(vm, "socket");
     socket
@@ -35,7 +42,7 @@ SQRESULT sqmodule_load(HSQUIRRELVM vm, HSQAPI api, kb::Table& RetTable) {
     .Ctor<int, int>()
     ;
 
-    RetTable.Bind("socket", socket);
+    BindingTable.Bind("socket", socket);
 
     return SQ_OK;
 }

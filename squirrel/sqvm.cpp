@@ -147,9 +147,9 @@ void SQVM::Finalize()
 
 SQVM::~SQVM()
 {
-    for (SQModuleDestruct_t& destructor : _module_destructors) {
-        if (destructor) {
-            destructor(this);
+    for (auto& [_name, _destructor] : _modules) {
+        if (_destructor) {
+            _destructor(this);
         }
     }
 
@@ -843,6 +843,10 @@ exception_restore:
                     }
                 }
                   continue;
+            case _OP_PREPCALLI: {
+                STK(arg1) = SQTable::Create(_ss(this), 0);
+                TARGET = ci->_literals[arg2];
+            } continue;
             case _OP_PREPCALL:
             case _OP_PREPCALLK: {
                     SQObjectPtr &key = _i_.op == _OP_PREPCALLK?(ci->_literals)[arg1]:STK(arg1);
@@ -1097,18 +1101,8 @@ exception_restore:
                 if(_openouters) CloseOuters(&(STK(arg1)));
                 continue;
             case _OP_IMPORT: {
-                SQObjectPtr table;
-                if (arg2) { // isImportToTable
-                    table = SQTable::Create(_ss(this), 0);
-                } else {
-                    table = _roottable;
-                }
-                Push(table);
-                if (!ImportModule(ci->_literals[arg1], table)) {
-                    SQ_THROW();
-                }
-                TARGET = table;
-                Pop();
+                // just merge stackbase table with imported table
+                _table(TARGET)->Merge(_table(STK(arg1)));
             }
                 continue;
             }

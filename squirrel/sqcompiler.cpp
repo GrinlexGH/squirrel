@@ -5,7 +5,8 @@
 #ifndef NO_COMPILER
 #include <stdarg.h>
 #include <setjmp.h>
-#include <string>
+#include <filesystem>
+#include <algorithm>
 #include "sqopcodes.h"
 #include "sqstring.h"
 #include "sqfuncproto.h"
@@ -13,7 +14,9 @@
 #include "sqfuncstate.h"
 #include "sqlexer.h"
 #include "sqvm.h"
+#include "sqclosure.h"
 #include "sqtable.h"
+#include "sqimport.h"
 
 #define EXPR   1
 #define OBJECT 2
@@ -318,22 +321,48 @@ public:
     }
     void ImportStatement()
     {
+        // TODO: more search pathes
         Lex(true);
-        SQObjectPtr modulePath = Expect(TK_STRING_LITERAL);
+        const char* modulePath = _string(Expect(TK_STRING_LITERAL))->_val;
+        std::string moduleName = std::filesystem::path(modulePath).filename().u8string();
+
+        // check for module existence
+        if (std::any_of(
+            _vm->_modules.begin(),
+            _vm->_modules.end(),
+            [&](const SQModule& existingModule) {
+                return existingModule._name == moduleName;
+            }
+        )) {
+            return;
+        }
+
         bool isImportToTable = false;
         if (_token == TK_AS) {
             Lex();
             Factor();
             isImportToTable = true;
         }
-        _fs->AddInstruction(
-            _OP_IMPORT,
-            _fs->PushTarget(),
-            _fs->GetConstant(modulePath),
-            isImportToTable
-        );
+
+        SQInteger bindingTableIdx = _fs->PushTarget();
+
+        if (SQObjectPtr closure; SQ_SUCCEEDED(ImportScript(moduleName, modulePath, closure))) {
+            SQInteger closureIdx = _fs->PushTarget();
+            // sqvm creates rettable and put received closure into stack
+            _fs->AddInstruction(_OP_PREPCALLI, closureIdx, bindingTableIdx, _fs->GetConstant(closure));
+            _fs->AddInstruction(_OP_CALL, -1, closureIdx, bindingTableIdx, 1);
+        } else {
+            // we have already received the table, so we need just to load it
+            kb::Table table(static_cast<SQObjectPtr>(SQTable::Create(_ss(_vm), 0)), _vm);
+            ImportLib(moduleName, modulePath, table);
+            _fs->AddInstruction(_OP_LOAD, bindingTableIdx, _fs->GetConstant(table));
+        }
+
         if (isImportToTable) {
-            EmitDerefOp(_OP_NEWSLOT);
+            _fs->AddInstruction(_OP_NEWSLOT, 0xFF, 0, bindingTableIdx - 1, bindingTableIdx);
+        } else {
+            // just merges stackbase table with binding table
+            _fs->AddInstruction(_OP_IMPORT, _fs->PushTarget(0), bindingTableIdx);
         }
     }
     void EmitDerefOp(SQOpcode op)
@@ -1271,7 +1300,7 @@ public:
         bool bfirst = true;
         SQInteger tonextcondjmp = -1;
         SQInteger skipcondjmp = -1;
-        SQInteger __nbreaks__ = _fs->_unresolvedbreaks.size();
+        SQInteger nbreaks = _fs->_unresolvedbreaks.size();
         _fs->_breaktargets.push_back(0);
         while(_token == TK_CASE) {
             if(!bfirst) {
@@ -1313,8 +1342,8 @@ public:
         }
         Expect(_SC('}'));
         _fs->PopTarget();
-        __nbreaks__ = _fs->_unresolvedbreaks.size() - __nbreaks__;
-        if(__nbreaks__ > 0)ResolveBreaks(_fs, __nbreaks__);
+        nbreaks = _fs->_unresolvedbreaks.size() - nbreaks;
+        if(nbreaks > 0)ResolveBreaks(_fs, nbreaks);
         _fs->_breaktargets.pop_back();
     }
     void FunctionStatement()
@@ -1632,6 +1661,8 @@ public:
             ntoresolve--;
         }
     }
+    SQRESULT ImportScript(const std::string& moduleName, const SQChar* modulePath, SQObjectPtr& outClosure) const;
+    void ImportLib(const std::string& moduleName, const SQChar* modulePath, kb::Table& bindingTable);
 private:
     SQInteger _token;
     SQFuncState *_fs;
@@ -1641,12 +1672,356 @@ private:
     bool _raiseerror;
     SQInteger _debugline;
     SQInteger _debugop;
-    SQExpState   _es;
+    SQExpState _es;
     SQScope _scope;
     SQChar _compilererror[MAX_COMPILER_ERROR_LEN];
     jmp_buf _errorjmp;
     SQVM *_vm;
 };
+
+// =============================
+// module importing
+
+// ===============
+// os depending stuff
+
+#ifdef _WIN32
+#include <windows.h>
+
+namespace {
+std::wstring widen(const std::string_view str) {
+    if (str.empty()) {
+        return {};
+    }
+
+    const int len = MultiByteToWideChar(
+        CP_UTF8, 0, &str[0],
+        static_cast<int>(str.size()), nullptr, 0
+    );
+
+    std::wstring out(len, 0);
+    MultiByteToWideChar(
+        CP_UTF8, 0, &str[0],
+        static_cast<int>(str.size()), &out[0], len
+    );
+
+    return out;
+}
+
+HMODULE LoadLib(const std::string& path) {
+    std::filesystem::path pathVariations(widen(path));
+
+    HMODULE ret = LoadLibraryExW(
+        pathVariations.c_str(),
+        nullptr,
+        LOAD_WITH_ALTERED_SEARCH_PATH
+    );
+    if (ret) {
+        return ret;
+    }
+
+    pathVariations.append(L".dll");
+    ret = LoadLibraryExW(
+        pathVariations.c_str(),
+        nullptr,
+        LOAD_WITH_ALTERED_SEARCH_PATH
+    );
+    if (ret) {
+        return ret;
+    }
+
+    const std::wstring libName = L"lib" + pathVariations.filename().wstring() + L".dll";
+    pathVariations.remove_filename();
+    pathVariations.append(libName);
+    return LoadLibraryExW(
+        pathVariations.c_str(),
+        nullptr,
+        LOAD_WITH_ALTERED_SEARCH_PATH
+    );
+}
+
+void* GetFunc(void* handle, const char* funcName) {
+    return static_cast<void*>(GetProcAddress(static_cast<HMODULE>(handle), funcName));
+}
+}
+
+#else
+
+#include <dlfcn.h>
+#include <iostream>
+#include <unistd.h>
+#include <linux/limits.h>
+
+namespace {
+void* LoadLib(const std::string& name) {
+    std::filesystem::path libPath = name;
+    std::string libName = "./lib" + libPath.filename().string() + ".so";
+    libPath.remove_filename();
+    libPath.append(libName);
+
+    return dlopen(libPath.c_str(), RTLD_NOW);
+}
+
+void* GetFunc(void* handle, const char* funcName) {
+    return dlsym(handle, funcName);
+}
+}
+#endif
+
+namespace {
+void RemoveModule(std::vector<SQModule>& vec, const SQModule& mod) {
+    vec.erase(std::find(vec.begin(), vec.end(), mod));
+}
+
+// ===============
+// nut script loading stuff from sqstdlib
+// I don't like duplicate code, but I have to do it here
+// TODO: fix code duplicating
+
+#ifdef SQUNICODE
+#define scfopen(x, y) _wfopen(widen(x).c_str(), widen(y).c_str())
+#else
+#define scfopen fopen
+#endif
+
+#define IO_BUFFER_SIZE 2048
+struct IOBuffer {
+    uint8_t buffer[IO_BUFFER_SIZE];
+    SQInteger size;
+    SQInteger ptr;
+    FILE* file;
+};
+
+uint8_t _read_byte(IOBuffer* iobuffer) {
+    if (iobuffer->ptr < iobuffer->size) {
+        const uint8_t ret = iobuffer->buffer[iobuffer->ptr];
+        iobuffer->ptr++;
+        return ret;
+    }
+
+    if ((iobuffer->size = static_cast<SQInteger>(fread(iobuffer->buffer, 1, IO_BUFFER_SIZE, iobuffer->file))) > 0) {
+        const uint8_t ret = iobuffer->buffer[0];
+        iobuffer->ptr = 1;
+        return ret;
+    }
+
+    return 0;
+}
+
+uint16_t _read_two_bytes(IOBuffer* iobuffer) {
+    if (iobuffer->ptr < iobuffer->size) {
+        if (iobuffer->size < 2) {
+            return 0;
+        }
+        const uint16_t ret = *reinterpret_cast<const uint16_t*>(&iobuffer->buffer[iobuffer->ptr]);
+        iobuffer->ptr += 2;
+        return ret;
+    }
+
+    if ((iobuffer->size = static_cast<SQInteger>(fread(iobuffer->buffer, 1, IO_BUFFER_SIZE, iobuffer->file))) > 0) {
+        if (iobuffer->size < 2) {
+            return 0;
+        }
+        const uint16_t ret = *reinterpret_cast<const uint16_t*>(&iobuffer->buffer[0]);
+        iobuffer->ptr = 2;
+        return ret;
+    }
+
+    return 0;
+}
+
+SQInteger file_read(SQUserPointer file, SQUserPointer buf, SQInteger size) {
+    if (const SQInteger ret = static_cast<SQInteger>(fread(buf, 1, size, static_cast<FILE*>(file))); ret != 0) {
+        return ret;
+    }
+
+    return -1;
+}
+
+SQInteger _io_file_lexfeed_UTF8(SQUserPointer iobuf) {
+    auto iobuffer = static_cast<IOBuffer*>(iobuf);
+
+#define READ(iobuf) \
+    if((inchar = (unsigned char)_read_byte(iobuf)) == 0) { \
+        return 0; \
+    }
+
+    static const SQInteger utf8_lengths[16] =
+    {
+        1,1,1,1,1,1,1,1,        /* 0000 to 0111 : 1 byte (plain ASCII) */
+        0,0,0,0,                /* 1000 to 1011 : not valid */
+        2,2,                    /* 1100, 1101 : 2 bytes */
+        3,                      /* 1110 : 3 bytes */
+        4                       /* 1111 :4 bytes */
+    };
+    static const unsigned char byte_masks[5] = { 0,0,0x1f,0x0f,0x07 };
+    unsigned char inchar;
+    READ(iobuffer);
+    SQInteger c = inchar;
+
+    if (c >= 0x80) {
+        SQInteger codelen = utf8_lengths[c >> 4];
+        if (codelen == 0) {
+            return 0;
+        }
+
+        SQInteger tmp = c & byte_masks[codelen];
+        for (SQInteger n = 0; n < codelen - 1; n++) {
+            tmp <<= 6;
+            READ(iobuffer);
+            tmp |= inchar & 0x3F;
+        }
+        c = tmp;
+    }
+    return c;
+}
+
+SQInteger _io_file_lexfeed_UCS2_LE(SQUserPointer iobuf) {
+    auto iobuffer = static_cast<IOBuffer*>(iobuf);
+    const SQInteger low = _read_two_bytes(iobuffer);
+    if (low == 0) {
+        return 0;
+    }
+
+    if (low < 0xD800 || low > 0xDFFF) {
+        return low;
+    }
+
+    if (const SQInteger high = _read_two_bytes(iobuffer); high >= 0xDC00 && high <= 0xDFFF) {
+        return ((low - 0xD800) << 10) + (high - 0xDC00) + 0x10000;
+    }
+
+    return 0;
+}
+
+SQInteger _io_file_lexfeed_UCS2_BE(SQUserPointer iobuf) {
+    auto iobuffer = static_cast<IOBuffer*>(iobuf);
+    SQInteger raw = _read_two_bytes(iobuffer);
+    if (raw == 0) {
+        return 0;
+    }
+
+    // BE to LE
+    const SQInteger value = ((raw >> 8) & 0xFF) | ((raw & 0xFF) << 8);
+
+    if (value < 0xD800 || value > 0xDFFF) {
+        return value;
+    }
+
+    raw = _read_two_bytes(iobuffer);
+    // BE to LE
+    raw = ((raw >> 8) & 0xFF) | ((raw & 0xFF) << 8);
+    if (raw >= 0xDC00 && raw <= 0xDFFF) {
+        return ((value - 0xD800) << 10) + (raw - 0xDC00) + 0x10000;
+    }
+
+    return 0;
+}
+
+#define NOTCHECK(x) (void)x
+
+SQRESULT loadfile(HSQUIRRELVM v, const SQChar* filename, SQObjectPtr& outClosure) {
+    FILE* file = scfopen(filename, "rb");
+
+    unsigned short us;
+    unsigned char uc;
+    SQLEXREADFUNC func = _io_file_lexfeed_UTF8; // assume file encoding is UTF-8
+    if (file) {
+        if (const SQInteger ret = static_cast<SQInteger>(fread(&us, 1, 2, file)); ret != 2) {
+            // probably an empty file
+            us = 0;
+        }
+        if (us == SQ_BYTECODE_STREAM_TAG) { // BYTECODE
+            NOTCHECK(fseek(file, 0, SEEK_SET));
+
+            if (!SQClosure::Load(v, file, file_read, outClosure)) {
+                NOTCHECK(fclose(file));
+                return SQ_OK;
+            }
+        }
+        else { // SCRIPT
+            switch (us) {
+                // gotta swap the next 2 lines on BIG endian machines
+                case 0xFFFE: func = _io_file_lexfeed_UCS2_BE; break; // UTF-16 little endian;
+                case 0xFEFF: func = _io_file_lexfeed_UCS2_LE; break; // UTF-16 big endian;
+                case 0xBBEF: // UTF-8
+                    if (fread(&uc, 1, sizeof(uc), file) == 0) {
+                        NOTCHECK(fclose(file));
+                        return SQ_ERROR;
+                    }
+                    if (uc != 0xBF) {
+                        NOTCHECK(fclose(file));
+                        return SQ_ERROR;
+                    }
+                    func = _io_file_lexfeed_UTF8;
+                    break;
+                default: NOTCHECK(fseek(file, 0, SEEK_SET)); break; // ascii or utf8
+            }
+            IOBuffer buffer;
+            buffer.ptr = 0;
+            buffer.size = 0;
+            buffer.file = file;
+            SQObjectPtr closureProto;
+            if (SQCompiler p(v, func, &buffer, filename, false, _ss(v)->_debuginfo); p.Compile(closureProto)) {
+                outClosure = SQClosure::Create(_ss(v), _funcproto(closureProto), _table(v->_roottable)->GetWeakRef(OT_TABLE));
+                NOTCHECK(fclose(file));
+                return SQ_OK;
+            }
+        }
+        NOTCHECK(fclose(file));
+        return SQ_ERROR;
+    }
+    return SQ_ERROR;
+}
+}
+
+SQRESULT SQCompiler::ImportScript(const std::string& moduleName, const SQChar* modulePath, SQObjectPtr& outClosure) const {
+    SQModule mod { moduleName, nullptr };
+    _vm->_modules.emplace_back(mod);
+
+    std::string filename(modulePath);
+    filename += ".nut";
+    if (SQ_FAILED(loadfile(_vm, modulePath, outClosure))) {
+        if (SQ_FAILED(loadfile(_vm, filename.c_str(), outClosure))) {
+            RemoveModule(_vm->_modules, mod);
+            return SQ_ERROR;
+        }
+    }
+
+    return SQ_OK;
+}
+
+void SQCompiler::ImportLib(const std::string& moduleName, const SQChar* modulePath, kb::Table& bindingTable) {
+    void* externalLibrary = LoadLib(modulePath);
+    if (!externalLibrary) {
+        Error("Cannot import module \"%s\"", moduleName.c_str());
+    }
+
+    const auto moduleLoader = reinterpret_cast<SQModuleLoader_t>(GetFunc(externalLibrary, "sqmodule_load"));
+    if (!moduleLoader) {
+        Error("Cannot get loader for module \"%s\"", moduleName.c_str());
+    }
+
+    SQModule mod { moduleName, nullptr };
+
+    // load destructor if exists
+    if (const auto moduleDestructor = reinterpret_cast<SQModuleDestructor_t>(GetFunc(externalLibrary, "sqmodule_destruct")); moduleDestructor) {
+        mod._destructor = moduleDestructor;
+    }
+
+    _vm->_modules.push_back(mod);
+
+    if (SQ_FAILED(moduleLoader(_vm, bindingTable))) {
+        RemoveModule(_vm->_modules, mod);
+
+        if (_string(_vm->_lasterror)) {
+            Error("Loader for module \"%s\" failed with message %s", moduleName.c_str(), _string(_vm->_lasterror)->_val);
+            return;
+        }
+
+        Error("Loader for module \"%s\" failed with unknown error", moduleName.c_str());
+    }
+}
 
 bool Compile(SQVM *vm,SQLEXREADFUNC rg, SQUserPointer up, const SQChar *sourcename, SQObjectPtr &out, bool raiseerror, bool lineinfo)
 {

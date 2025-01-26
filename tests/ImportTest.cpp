@@ -23,7 +23,6 @@
 
 #include <gtest/gtest.h>
 #include <kalibri.hpp>
-#include <sqstdmath.h>
 #include "Fixture.h"
 
 using namespace kb;
@@ -32,20 +31,20 @@ TEST_F(KalibriTest, ImportScript) {
     DefaultVM::Set(vm);
 
     Script script;
-    script.CompileString(_SC(" \
+    script.CompileString(" \
         import \"scripts/samplemodule\"\n \
         \
         gTest.EXPECT_FLOAT_EQ(3.1415, ::PI); \
         gTest.EXPECT_INT_EQ(10, ::RectArea(2, 5)); \
         gTest.EXPECT_FLOAT_EQ(12.566, ::CircleArea(2)); \
-    "));
-    if (kb::Error::Occurred(vm)) {
-        FAIL() << _SC("Compile Failed: ") << kb::Error::Message(vm);
+    ");
+    if (Error::Occurred(vm)) {
+        FAIL() << "Compile Failed: " << Error::Message(vm);
     }
 
     script.Run();
-    if (kb::Error::Occurred(vm)) {
-        FAIL() << _SC("Run Failed: ") << kb::Error::Message(vm);
+    if (Error::Occurred(vm)) {
+        FAIL() << "Run Failed: " << Error::Message(vm);
     }
 }
 
@@ -53,19 +52,53 @@ TEST_F(KalibriTest, ImportScriptIntoTable) {
     DefaultVM::Set(vm);
 
     Script script;
-    script.CompileString(_SC(" \
+    script.CompileString(" \
         import \"scripts/samplemodule\" as mod; \
         \
         gTest.EXPECT_FLOAT_EQ(3.1415, mod.PI); \
         gTest.EXPECT_INT_EQ(10, mod.RectArea(2, 5)); \
         gTest.EXPECT_FLOAT_EQ(12.566, mod.CircleArea(2)); \
-    "));
-    if (kb::Error::Occurred(vm)) {
-        FAIL() << _SC("Compile Failed: ") << kb::Error::Message(vm);
+    ");
+    if (Error::Occurred(vm)) {
+        FAIL() << "Compile Failed: " << Error::Message(vm);
     }
 
     script.Run();
-    if (kb::Error::Occurred(vm)) {
-        FAIL() << _SC("Run Failed: ") << kb::Error::Message(vm);
+    if (Error::Occurred(vm)) {
+        FAIL() << "Run Failed: " << Error::Message(vm);
+    }
+}
+
+TEST_F(KalibriTest, RecursiveImport) {
+    DefaultVM::Set(vm);
+
+    Script script;
+    script.CompileFile("scripts/a.nut");
+    if (Error::Occurred(vm)) {
+        FAIL() << "Compile Failed: " << Error::Message(vm);
+    }
+
+    script.Run();
+    if (Error::Occurred(vm)) {
+        FAIL() << "Run Failed: " << Error::Message(vm);
+    }
+}
+
+TEST_F(KalibriTest, ImportConsts) {
+    DefaultVM::Set(vm);
+
+    Script script;
+    script.CompileString(" \
+        import \"scripts/const\" as mod; \
+        \
+        gTest.EXPECT_INT_EQ(3, a); \
+    ");
+    if (Error::Occurred(vm)) {
+        FAIL() << "Compile Failed: " << Error::Message(vm);
+    }
+
+    script.Run();
+    if (Error::Occurred(vm)) {
+        FAIL() << "Run Failed: " << Error::Message(vm);
     }
 }

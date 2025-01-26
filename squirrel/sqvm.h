@@ -20,7 +20,7 @@
 void sq_base_register(HSQUIRRELVM v);
 
 struct SQExceptionTrap{
-    SQExceptionTrap() {}
+    SQExceptionTrap() = default;
     SQExceptionTrap(SQInteger ss, SQInteger stackbase,SQInstruction *ip, SQInteger ex_target){ _stacksize = ss; _stackbase = stackbase; _ip = ip; _extarget = ex_target;}
     SQExceptionTrap(const SQExceptionTrap &et) { (*this) = et;  }
     SQInteger _stackbase;
@@ -32,6 +32,16 @@ struct SQExceptionTrap{
 #define _INLINE
 
 typedef sqvector<SQExceptionTrap> ExceptionsTraps;
+
+struct SQModule
+{
+    std::string _name;
+    SQModuleDestructor_t _destructor;
+};
+
+inline bool operator==(const SQModule& lhs, const SQModule& rhs) {
+    return (lhs._name == rhs._name) && (lhs._destructor == rhs._destructor);
+}
 
 struct SQVM : public CHAINABLE_OBJ
 {
@@ -130,7 +140,6 @@ public:
     bool EnterFrame(SQInteger newbase, SQInteger newtop, bool tailcall);
     void LeaveFrame();
     void Release(){ sq_delete(this,SQVM); }
-    bool ImportModule(const SQObjectPtr& modulePath, const SQObjectPtr& retTable);
 ////////////////////////////////////////////////////////////////////////////
     //stack functions for the api
     void Remove(SQInteger n);
@@ -181,7 +190,7 @@ public:
     SQInteger _suspended_target;
     SQInteger _suspended_traps;
 
-    std::vector<SQModuleDestruct_t> _module_destructors;
+    std::vector<SQModule> _modules;
 };
 
 struct AutoDec{

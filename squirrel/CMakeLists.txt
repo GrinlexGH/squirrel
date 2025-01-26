@@ -9,8 +9,7 @@ set(SQUIRREL_SRC sqapi.cpp
                  sqobject.cpp
                  sqstate.cpp
                  sqtable.cpp
-                 sqvm.cpp
-                 sqimport.cpp)
+                 sqvm.cpp)
 
 if(NOT DISABLE_DYNAMIC)
   add_library(squirrel SHARED ${SQUIRREL_SRC})

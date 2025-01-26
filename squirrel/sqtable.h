@@ -97,6 +97,7 @@ public:
     //returns true if a new slot has been created false if it was already present
     bool NewSlot(const SQObjectPtr &key,const SQObjectPtr &val);
     SQInteger Next(bool getweakrefs,const SQObjectPtr &refpos, SQObjectPtr &outkey, SQObjectPtr &outval);
+    void Merge(SQTable* table);
 
     SQInteger CountUsed(){ return _usednodes;}
     void Clear();
@@ -104,7 +105,6 @@ public:
     {
         sq_delete(this, SQTable);
     }
-
 };
 
 #endif //_SQTABLE_H_

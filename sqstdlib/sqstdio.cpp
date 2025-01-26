@@ -371,7 +371,7 @@ SQRESULT sqstd_loadfile(HSQUIRRELVM v,const SQChar *filename,SQBool printerror)
     SQInteger ret;
     unsigned short us;
     unsigned char uc;
-    SQLEXREADFUNC func = _io_file_lexfeed_UTF8; // assume file encoding in UTF-8
+    SQLEXREADFUNC func = _io_file_lexfeed_UTF8; // assume file encoding is UTF-8
     if(file){
         ret = sqstd_fread(&us,1,2,file);
         if(ret != 2) {
