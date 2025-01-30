@@ -72,7 +72,6 @@ struct SQVM;
 #define TK_CONST 324
 #define TK_RAWCALL 325
 #define TK_IMPORT 326
-#define TK_AS 327
 
 
 

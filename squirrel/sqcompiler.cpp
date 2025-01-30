@@ -248,7 +248,7 @@ public:
             }
             break;}
         case TK_BREAK:
-            if(_fs->_breaktargets.size() <= 0)Error(_SC("'break' has to be in a loop block"));
+            if(_fs->_breaktargets.empty())Error(_SC("'break' has to be in a loop block"));
             if(_fs->_breaktargets.top() > 0){
                 _fs->AddInstruction(_OP_POPTRAP, _fs->_breaktargets.top(), 0);
             }
@@ -258,7 +258,7 @@ public:
             Lex();
             break;
         case TK_CONTINUE:
-            if(_fs->_continuetargets.size() <= 0)Error(_SC("'continue' has to be in a loop block"));
+            if(_fs->_continuetargets.empty())Error(_SC("'continue' has to be in a loop block"));
             if(_fs->_continuetargets.top() > 0) {
                 _fs->AddInstruction(_OP_POPTRAP, _fs->_continuetargets.top(), 0);
             }
@@ -310,7 +310,7 @@ public:
             strongid.Null();
             }
             break;
-        case TK_IMPORT: ImportStatement(); break;
+            case TK_IMPORT: ImportExpr(true); break;
         default:
             CommaExpr();
             _fs->DiscardTarget();
@@ -319,12 +319,12 @@ public:
         }
         _fs->SnoozeOpt();
     }
-    void ImportStatement()
+    void ImportExpr(const bool toRoot = false)
     {
-        // TODO: more search pathes
+        // TODO: more search paths
         Lex(true);
         const char* modulePath = _string(Expect(TK_STRING_LITERAL))->_val;
-        std::string moduleName = std::filesystem::path(modulePath).filename().u8string();
+        const std::string moduleName = std::filesystem::path(modulePath).filename().u8string();
 
         // check for module existence
         if (std::any_of(
@@ -337,32 +337,19 @@ public:
             return;
         }
 
-        bool isImportToTable = false;
-        if (_token == TK_AS) {
-            Lex();
-            Factor();
-            isImportToTable = true;
-        }
-
-        SQInteger bindingTableIdx = _fs->PushTarget();
+        const SQInteger bindingTableIdx = _fs->PushTarget(toRoot ? 0 : -1);
 
         if (SQObjectPtr closure; SQ_SUCCEEDED(ImportScript(moduleName, modulePath, closure))) {
             SQInteger closureIdx = _fs->PushTarget();
-            // sqvm creates rettable and put received closure into stack
+            // sqvm creates binding table and put received closure into stack
             _fs->AddInstruction(_OP_PREPCALLI, closureIdx, bindingTableIdx, _fs->GetConstant(closure));
             _fs->AddInstruction(_OP_CALL, -1, closureIdx, bindingTableIdx, 1);
+            _fs->PopTarget();
         } else {
             // we have already received the table, so we need just to load it
             kb::Table table(static_cast<SQObjectPtr>(SQTable::Create(_ss(_vm), 0)), _vm);
             ImportLib(moduleName, modulePath, table);
             _fs->AddInstruction(_OP_LOAD, bindingTableIdx, _fs->GetConstant(table));
-        }
-
-        if (isImportToTable) {
-            _fs->AddInstruction(_OP_NEWSLOT, 0xFF, 0, bindingTableIdx - 1, bindingTableIdx);
-        } else {
-            // just merges stackbase table with binding table
-            _fs->AddInstruction(_OP_IMPORT, _fs->PushTarget(0), bindingTableIdx);
         }
     }
     void EmitDerefOp(SQOpcode op)
@@ -769,6 +756,9 @@ public:
         //_es.etype = EXPR;
         switch(_token)
         {
+        case TK_IMPORT:
+            ImportExpr();
+            break;
         case TK_STRING_LITERAL:
             _fs->AddInstruction(_OP_LOAD, _fs->PushTarget(), _fs->GetConstant(_fs->CreateString(_lex._svalue,_lex._longstr.size()-1)));
             Lex();
@@ -1962,7 +1952,7 @@ SQRESULT loadfile(HSQUIRRELVM v, const SQChar* filename, SQObjectPtr& outClosure
             buffer.size = 0;
             buffer.file = file;
             SQObjectPtr closureProto;
-            if (SQCompiler p(v, func, &buffer, filename, false, _ss(v)->_debuginfo); p.Compile(closureProto)) {
+            if (SQCompiler p(v, func, &buffer, filename, true, _ss(v)->_debuginfo); p.Compile(closureProto)) {
                 outClosure = SQClosure::Create(_ss(v), _funcproto(closureProto), _table(v->_roottable)->GetWeakRef(OT_TABLE));
                 NOTCHECK(fclose(file));
                 return SQ_OK;

@@ -53,7 +53,7 @@ TEST_F(KalibriTest, ImportScriptIntoTable) {
 
     Script script;
     script.CompileString(" \
-        import \"scripts/samplemodule\" as mod; \
+        mod <- import \"scripts/samplemodule\"; \
         \
         gTest.EXPECT_FLOAT_EQ(3.1415, mod.PI); \
         gTest.EXPECT_INT_EQ(10, mod.RectArea(2, 5)); \
@@ -89,9 +89,50 @@ TEST_F(KalibriTest, ImportConsts) {
 
     Script script;
     script.CompileString(" \
-        import \"scripts/const\" as mod; \
+        mod <- import \"scripts/const\"; \
         \
         gTest.EXPECT_INT_EQ(3, a); \
+    ");
+    if (Error::Occurred(vm)) {
+        FAIL() << "Compile Failed: " << Error::Message(vm);
+    }
+
+    script.Run();
+    if (Error::Occurred(vm)) {
+        FAIL() << "Run Failed: " << Error::Message(vm);
+    }
+}
+
+TEST_F(KalibriTest, ImportEnums) {
+    DefaultVM::Set(vm);
+
+    Script script;
+    script.CompileString(" \
+        mod <- import \"scripts/enums\"; \
+        \
+        gTest.EXPECT_INT_EQ(0, Stuff.first); \
+        gTest.EXPECT_INT_EQ(1, Stuff.second); \
+        gTest.EXPECT_INT_EQ(2, Stuff.third); \
+    ");
+    if (Error::Occurred(vm)) {
+        FAIL() << "Compile Failed: " << Error::Message(vm);
+    }
+
+    script.Run();
+    if (Error::Occurred(vm)) {
+        FAIL() << "Run Failed: " << Error::Message(vm);
+    }
+}
+
+TEST_F(KalibriTest, ImportClasses) {
+    DefaultVM::Set(vm);
+
+    Script script;
+    script.CompileString(" \
+        mod <- import \"scripts/classes\"; \
+        \
+        local test = mod.ChildClass();\
+        gTest.EXPECT_STR_EQ(test.member, \"child class member\");\
     ");
     if (Error::Occurred(vm)) {
         FAIL() << "Compile Failed: " << Error::Message(vm);

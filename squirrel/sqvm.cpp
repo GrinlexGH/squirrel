@@ -6,6 +6,9 @@
 #include <stdlib.h>
 #include "sqopcodes.h"
 #include "sqvm.h"
+#ifdef _DEBUG_DUMP
+#include "squserdata.h"
+#endif
 #include "sqfuncproto.h"
 #include "sqclosure.h"
 #include "sqstring.h"
@@ -745,7 +748,9 @@ exception_restore:
         for(;;)
         {
             const SQInstruction &_i_ = *ci->_ip++;
-            //dumpstack(_stackbase);
+            #ifdef _DEBUG_DUMP
+                //dumpstack(_stackbase);
+            #endif
             //scprintf("\n[%d] %s %d %d %d %d\n",ci->_ip-_closure(ci->_closure)->_function->_instructions,g_InstrDesc[_i_.op].name,arg0,arg1,arg2,arg3);
             switch(_i_.op)
             {
@@ -844,7 +849,9 @@ exception_restore:
                 }
                   continue;
             case _OP_PREPCALLI: {
-                STK(arg1) = SQTable::Create(_ss(this), 0);
+                if (STK(arg1)._type == OT_NULL) {
+                    STK(arg1) = SQTable::Create(_ss(this), 0);
+                }
                 TARGET = ci->_literals[arg2];
             } continue;
             case _OP_PREPCALL:
@@ -1099,11 +1106,6 @@ exception_restore:
             }
             case _OP_CLOSE:
                 if(_openouters) CloseOuters(&(STK(arg1)));
-                continue;
-            case _OP_IMPORT: {
-                // just merge stackbase table with imported table
-                _table(TARGET)->Merge(_table(STK(arg1)));
-            }
                 continue;
             }
 

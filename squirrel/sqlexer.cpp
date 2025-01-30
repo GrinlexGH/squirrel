@@ -68,7 +68,6 @@ void SQLexer::Init(SQSharedState *ss, SQLEXREADFUNC rg, SQUserPointer up,Compile
     ADD_KEYWORD(__FILE__,TK___FILE__);
     ADD_KEYWORD(rawcall, TK_RAWCALL);
     ADD_KEYWORD(import, TK_IMPORT);
-    ADD_KEYWORD(as, TK_AS);
 
 
     _readf = rg;
