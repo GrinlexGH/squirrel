@@ -24,7 +24,7 @@ What `import` will do:
 3. Tries to load `mymodule.dll`. If successfully loaded, tries to load `sqmodule_load` function. If successfully loaded, calls the `sqmodule_load()`.
 
 In other situations throws error.
-
+--------------------------------------------------
 ### TODO
 
 - [x] `import` "folder/subfolder/module"
