@@ -25,7 +25,6 @@
 #include <kalibri.hpp>
 #include "Fixture.h"
 
-
 using namespace kb;
 
 TEST_F(KalibriTest, ArrayGet) {
