@@ -19,7 +19,7 @@ import "mymodule"
 ```
 What `import` will do:
 
-1. Tries to load `mymodule` nut script file. If `mymodule` nut script successfully loaded, executes the script and merges (if stackbase table is roottable) or repaces (if you use syntax like `mod <- import "mymodule"`) root or `mod` table with table with global variables, declared in `mymodule` file.
+1. Tries to load `mymodule` nut script file. If `mymodule` nut script successfully loaded, executes the script and merges (if stackbase table is roottable) or replaces (if you use syntax like `mod <- import "mymodule"`) root or `mod` table with table with global variables, declared in `mymodule` file.
 2. Tries to load `mymodule.nut` script file. If successfully loaded, does the same as in first item.
 3. Tries to load `mymodule.dll`. If successfully loaded, tries to load `sqmodule_load` function. If successfully loaded, calls the `sqmodule_load()`.
 
