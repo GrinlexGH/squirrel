@@ -10,7 +10,6 @@
 #include <squirrel.h>
 #include <sqstdio.h>
 #include <kalibri.hpp>
-#include <kalibri/kbunicode.hpp>
 #include <gtest/gtest.h>
 
 #if _WIN32

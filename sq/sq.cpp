@@ -1,14 +1,12 @@
 /*  see copyright notice in squirrel.h */
 
-#include <stdio.h>
+#include <cstdio>
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
 
-#if defined(_MSC_VER) && defined(_DEBUG)
-#include <crtdbg.h>
-#include <conio.h>
-#endif
+#include <iostream>
+
 #include <squirrel.h>
 #include <sqstdblob.h>
 #include <sqstdsystem.h>
@@ -19,36 +17,13 @@
 
 #include <kalibri.hpp>
 
-#define scfprintf fprintf
-#define scvprintf vfprintf
-
-void PrintVersionInfos();
-
 #ifdef _WIN32
-
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
-
-void initconsole() {
-    SetConsoleCP(CP_UTF8);
-    SetConsoleOutputCP(CP_UTF8);
-}
-
-#else
-
-void initconsole() { }
-
 #endif
 
-#if defined(_MSC_VER) && defined(_DEBUG)
-int MemAllocHook( int allocType, void *userData, size_t size, int blockType,
-   long requestNumber, const unsigned char *filename, int lineNumber)
-{
-    //if(requestNumber==769)_asm int 3;
-    return 1;
-}
-#endif
-
+#define scfprintf std::fprintf
+#define scvprintf std::vfprintf
 
 SQInteger quit(HSQUIRRELVM v)
 {
@@ -231,15 +206,15 @@ void Interactive(HSQUIRRELVM v)
     while (!done)
     {
         SQInteger i = 0;
-        scprintf(_SC("\nsq>"));
+        scprintf("\nsq>");
         for(;;) {
             int c;
             if(done)return;
             c = getchar();
-            if (c == _SC('\n')) {
-                if (i>0 && buffer[i-1] == _SC('\\'))
+            if (c == '\n') {
+                if (i>0 && buffer[i-1] == '\\')
                 {
-                    buffer[i-1] = _SC('\n');
+                    buffer[i-1] = '\n';
                 }
                 else if(blocks==0)break;
                 buffer[i++] = _SC('\n');
@@ -263,8 +238,9 @@ void Interactive(HSQUIRRELVM v)
         }
         buffer[i] = _SC('\0');
 
+        // Display ret val
         if(buffer[0]==_SC('=')){
-            scsprintf(sq_getscratchpad(v,MAXINPUT+9),MAXINPUT+9,_SC("return (%s)"),&buffer[1]);
+            scsprintf(sq_getscratchpad(v, MAXINPUT+9),MAXINPUT+9,_SC("return (%s)"),&buffer[1]);
             memcpy(buffer,sq_getscratchpad(v,-1),(scstrlen(sq_getscratchpad(v,-1))+1)*sizeof(SQChar));
             retval=1;
         }
@@ -294,15 +270,15 @@ void Interactive(HSQUIRRELVM v)
 
 int main(int argc, char* argv[])
 {
-    initconsole();
-
-    HSQUIRRELVM v;
-    SQInteger retval = 0;
-#if defined(_MSC_VER) && defined(_DEBUG)
-    _CrtSetAllocHook(MemAllocHook);
+#ifdef _WIN32
+    SetConsoleCP(CP_UTF8);
+    SetConsoleOutputCP(CP_UTF8);
+    std::locale::global(std::locale(".UTF-8"));
 #endif
 
-    v=sq_open(1024);
+    SQInteger retval = 0;
+
+    HSQUIRRELVM v = sq_open(1024);
     sq_setprintfunc(v,printfunc,errorfunc);
 
     sq_pushroottable(v);
@@ -330,10 +306,6 @@ int main(int argc, char* argv[])
     }
     sq_close(v);
 
-#if defined(_MSC_VER) && defined(_DEBUG)
-    _getch();
-    _CrtMemDumpAllObjectsSince( NULL );
-#endif
-    return (int)retval;
+    return static_cast<int>(retval);
 }
 

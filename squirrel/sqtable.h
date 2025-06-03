@@ -73,14 +73,14 @@ public:
         }while((n = n->next));
         return NULL;
     }
-    //for compiler use
+    // for compiler use
     inline bool GetStr(const SQChar* key,SQInteger keylen,SQObjectPtr &val)
     {
         SQHash hash = _hashstr(key,keylen);
         _HashNode *n = &_nodes[hash & (_numofnodes - 1)];
         _HashNode *res = NULL;
         do{
-            if(sq_type(n->key) == OT_STRING && (scstrcmp(_stringval(n->key),key) == 0)){
+            if(sq_type(n->key) == OT_STRING && (std::strcmp(_stringval(n->key),key) == 0)){
                 res = n;
                 break;
             }
@@ -94,7 +94,7 @@ public:
     bool Get(const SQObjectPtr &key,SQObjectPtr &val);
     void Remove(const SQObjectPtr &key);
     bool Set(const SQObjectPtr &key, const SQObjectPtr &val);
-    //returns true if a new slot has been created false if it was already present
+    // returns true if a new slot has been created false if it was already present
     bool NewSlot(const SQObjectPtr &key,const SQObjectPtr &val);
     SQInteger Next(bool getweakrefs,const SQObjectPtr &refpos, SQObjectPtr &outkey, SQObjectPtr &outval);
 

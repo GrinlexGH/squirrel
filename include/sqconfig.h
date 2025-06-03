@@ -51,6 +51,7 @@ typedef void* SQUserPointer;
 typedef SQUnsignedInteger SQBool;
 typedef SQInteger SQRESULT;
 
+// for backward compatibility
 typedef char SQChar;
 #define _SC(a) a
 #define scstrcmp    strcmp
@@ -69,15 +70,15 @@ typedef char SQChar;
 #define scstrtoul   strtoul
 #define scvsprintf  vsnprintf
 #define scstrstr    strstr
-#define scisspace(x)   isspace((int)(x))
-#define scisdigit(x)   isdigit((int)(x))
-#define scisprint(x)   isprint((int)(x))
-#define scisxdigit(x)  isxdigit((int)(x))
-#define sciscntrl(x)   iscntrl((int)(x))
-#define scisalpha(x)   isalpha((int)(x))
-#define scisalnum(x)   isalnum((int)(x))
+#define scisspace   isspace
+#define scisdigit   isdigit
+#define scisprint   isprint
+#define scisxdigit  isxdigit
+#define sciscntrl   iscntrl
+#define scisalpha   isalpha
+#define scisalnum   isalnum
 #define scprintf    printf
-#define MAX_CHAR 0x10FFFF
+#define MAX_CHAR    0x10FFFF
 
 #define sq_rsl(l) (l)
 

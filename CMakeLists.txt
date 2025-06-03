@@ -112,7 +112,6 @@ if(NOT SQ_DISABLE_INSTALLER AND NOT SQ_DISABLE_HEADER_INSTALLER)
     include/kalibri/kbscript.hpp
     include/kalibri/kbtable.hpp
     include/kalibri/kbtypes.hpp
-    include/kalibri/kbunicode.hpp
     include/kalibri/kbutil.hpp
     include/kalibri/kbvm.hpp
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/kalibri

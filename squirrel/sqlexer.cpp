@@ -2,8 +2,8 @@
     see copyright notice in squirrel.h
 */
 #include "sqpcheader.h"
-#include <ctype.h>
-#include <stdlib.h>
+#include <cctype>
+#include <cstdlib>
 #include "sqtable.h"
 #include "sqstring.h"
 #include "sqcompiler.h"
@@ -298,17 +298,17 @@ SQInteger SQLexer::Lex(bool stringVerbatim)
         case SQUIRREL_EOB:
             return 0;
         default: {
-            if (scisdigit(CUR_CHAR)) {
+            if (std::isdigit(CUR_CHAR)) {
                 SQInteger ret = ReadNumber();
                 RETURN_TOKEN(ret);
             }
-            else if (scisalpha(CUR_CHAR) || CUR_CHAR == _SC('_')) {
+            else if (std::isdigit(CUR_CHAR) || CUR_CHAR == _SC('_')) {
                 SQInteger t = ReadID();
                 RETURN_TOKEN(t);
             }
             else {
                 SQInteger c = CUR_CHAR;
-                if (sciscntrl(c)) Error(_SC("unexpected character(control)"));
+                if (std::isdigit(c)) Error(_SC("unexpected character(control)"));
                 NEXT();
                 RETURN_TOKEN(c);
             }
@@ -385,7 +385,7 @@ SQInteger SQLexer::ProcessStringHexEscape(SQChar *dest, SQInteger maxdigits)
     return n;
 }
 
-SQInteger SQLexer::ReadString(SQInteger ndelim,bool verbatim)
+SQInteger SQLexer::ReadString(SQInteger ndelim, bool verbatim)
 {
     INIT_TEMP_STRING();
     NEXT();
@@ -444,7 +444,7 @@ SQInteger SQLexer::ReadString(SQInteger ndelim,bool verbatim)
                 }
                 break;
             default:
-                AddUTF8(CUR_CHAR);
+                APPEND_CHAR(CUR_CHAR);
                 NEXT();
             }
         }

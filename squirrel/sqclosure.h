@@ -1,6 +1,7 @@
 /*  see copyright notice in squirrel.h */
 #ifndef _SQCLOSURE_H_
 #define _SQCLOSURE_H_
+#include "sqfuncproto.h"
 
 
 #define _CALC_CLOSURE_SIZE(func) (sizeof(SQClosure) + (func->_noutervalues*sizeof(SQObjectPtr)) + (func->_ndefaultparams*sizeof(SQObjectPtr)))

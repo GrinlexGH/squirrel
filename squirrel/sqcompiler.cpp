@@ -9,7 +9,6 @@
 #include <algorithm>
 #include "sqopcodes.h"
 #include "sqstring.h"
-#include "sqfuncproto.h"
 #include "sqcompiler.h"
 #include "sqfuncstate.h"
 #include "sqlexer.h"

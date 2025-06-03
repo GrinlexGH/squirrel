@@ -40,8 +40,6 @@
 #include <sqstdsystem.h>
 #include <sqstdstring.h>
 
-#include "kbunicode.hpp"
-
 namespace kb
 {
 

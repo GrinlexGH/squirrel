@@ -28,14 +28,14 @@ static bool sq_aux_gettypedarg(HSQUIRRELVM v,SQInteger idx,SQObjectType type,SQO
 
 #define sq_aux_paramscheck(v,count) \
 { \
-    if(sq_gettop(v) < count){ v->Raise_Error(_SC("not enough params in the stack")); return SQ_ERROR; }\
+    if(sq_gettop(v) < count){ v->Raise_Error("not enough params in the stack"); return SQ_ERROR; }\
 }
 
 
 SQInteger sq_aux_invalidtype(HSQUIRRELVM v,SQObjectType type)
 {
-    SQUnsignedInteger buf_size = 100 *sizeof(SQChar);
-    scsprintf(_ss(v)->GetScratchPad(buf_size), buf_size, _SC("unexpected type %s"), IdType2Name(type));
+    constexpr SQInteger buf_size = 100 * sizeof(SQChar);
+    std::snprintf(_ss(v)->GetScratchPad(buf_size), buf_size, "unexpected type %s", IdType2Name(type));
     return sq_throwerror(v, _ss(v)->GetScratchPad(-1));
 }
 
@@ -48,7 +48,7 @@ HSQUIRRELVM sq_open(SQInteger initialstacksize)
     v = (SQVM *)SQ_MALLOC(sizeof(SQVM));
     new (v) SQVM(ss);
     ss->_root_vm = v;
-    if(v->Init(NULL, initialstacksize)) {
+    if(v->Init(nullptr, initialstacksize)) {
         return v;
     } else {
         sq_delete(v, SQVM);
@@ -1583,7 +1583,7 @@ SQInteger buf_lexfeed(SQUserPointer file)
     BufState *buf=(BufState*)file;
     if(buf->size<(buf->ptr+1))
         return 0;
-    return buf->buf[buf->ptr++];
+    return static_cast<unsigned char>(buf->buf[buf->ptr++]);
 }
 
 SQRESULT sq_compilebuffer(HSQUIRRELVM v,const SQChar *s,SQInteger size,const SQChar *sourcename,SQBool raiseerror) {

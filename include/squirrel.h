@@ -59,7 +59,7 @@ struct SQInstance;
 struct SQDelegable;
 struct SQOuter;
 
-#if defined(_UNICODE) && defined(_WIN32)
+#if defined(_WIN32)
 #define SQUNICODE
 #endif
 

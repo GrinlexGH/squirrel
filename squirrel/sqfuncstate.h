@@ -3,6 +3,7 @@
 #define _SQFUNCSTATE_H_
 ///////////////////////////////////
 #include "squtils.h"
+#include "sqfuncproto.h"
 
 struct SQFuncState
 {
